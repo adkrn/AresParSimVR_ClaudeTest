@@ -1,0 +1,77 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Skybox_Custom
+  m_Shader: {fileID: 4800000, guid: 846f1e8b410d51444866f03712815c1e, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords:
+  - _SHOW_SUN
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _CloudMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _FlatCloudsBaseTexture:
+        m_Texture: {fileID: 2800000, guid: 9b9ac0c14a0678d498b26fb2486005f1, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _FlatCloudsDetailTexture:
+        m_Texture: {fileID: 2800000, guid: 3904de3fb7c0ff1419fd3064f8114c90, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MoonTex:
+        m_Texture: {fileID: 2800000, guid: f9f2b9bdb35cab546957d4d1bd0fb807, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Stars:
+        m_Texture: {fileID: 8900000, guid: 5388d7ed7576f6943bff6184300234e8, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _CloudAlpha: 0
+    - _CloudAltitude: 0.168
+    - _CloudColorPower: -2.3040757
+    - _CloudCoverage: 0.162
+    - _CloudsExposure: 1
+    - _MoonIntensity: 0.91
+    - _ShowMoon: 0
+    - _ShowStars: 0
+    - _ShowSun: 1
+    - _SunAzimuth: 0
+    - _SunElevation: 120
+    - _SunIntensity: 0.3
+    m_Colors:
+    - _CloudAnimation: {r: 0.02, g: 0.01, b: 0, a: 0}
+    - _CloudColor: {r: 0.053750996, g: 0.055375498, b: 0.056999996, a: 1}
+    - _FlatCloudsAmbientColor: {r: 0.4566037, g: 0.37248394, b: 0.2782698, a: 1}
+    - _FlatCloudsAnimation: {r: -0.72, g: 0.92, b: 0.63, a: 1.42}
+    - _FlatCloudsLightColor: {r: 1, g: 1, b: 1, a: 1}
+    - _FlatCloudsLightDirection: {r: 1, g: 1, b: 1, a: 1}
+    - _FlatCloudsLightingParams: {r: 1.2132874, g: 1.0632874, b: 1.86, a: 5.6}
+    - _FlatCloudsParams: {r: 1, g: 0.1, b: 20, a: 0}
+    - _FlatCloudsTiling: {r: 3.3, g: 0.94, b: 0, a: 0}
+    - _HorizonColor: {r: 0.91309905, g: 0.91309905, b: 0.91309905, a: 1}
+    - _MoonDir: {r: 0, g: 1.01, b: 0, a: 0}
+    - _SkyColor: {r: 0.42157033, g: 0.7008719, b: 0.9009685, a: 1}
+    - _SunColor: {r: 1, g: 1, b: 1, a: 1}
+    - _SunDir: {r: 0, g: 0.64, b: 0.87, a: 0}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Skybox_Procedural_Custom
+  m_Shader: {fileID: 4800000, guid: 23a1f1468c3735844b0930fdd48b23d5, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords:
+  - _SUNDISK_HIGH_QUALITY
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _FlatCloudsBaseTexture:
+        m_Texture: {fileID: 2800000, guid: 9b9ac0c14a0678d498b26fb2486005f1, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _FlatCloudsDetailTexture:
+        m_Texture: {fileID: 2800000, guid: 3904de3fb7c0ff1419fd3064f8114c90, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _AtmosphereThickness: 1
+    - _Exposure: 1.3
+    - _SunDisk: 2
+    - _SunSize: 0.04
+    - _SunSizeConvergence: 5
+    m_Colors:
+    - _FlatCloudsAmbientColor: {r: 0.6, g: 0.65, b: 0.7, a: 1}
+    - _FlatCloudsAnimation: {r: 14.86, g: -1.1, b: 0.43, a: 0.56}
+    - _FlatCloudsLightColor: {r: 1, g: 0.96999997, b: 0.9, a: 1}
+    - _FlatCloudsLightDirection: {r: 4.6, g: 1.05, b: 3.02, a: 1.04}
+    - _FlatCloudsLightingParams: {r: 1.0119059, g: 0.861906, b: 2, a: 5.28}
+    - _FlatCloudsParams: {r: 10, g: 1, b: 20, a: 2.57}
+    - _FlatCloudsTiling: {r: 1.34, g: 0.5, b: 0, a: 0}
+    - _GroundColor: {r: 0.36899996, g: 0.34899998, b: 0.34099993, a: 1}
+    - _SkyTint: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

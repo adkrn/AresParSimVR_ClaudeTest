@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 0cbbe382763e1f045b7d218c55f59d02
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 11400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 213197
+  packageName: Unity Terrain - URP Demo Scene
+  packageVersion: 1.0.3
+  assetPath: Assets/TerrainDemoScene_URP/Prefabs/Volumes/PostProcess Profile.asset
+  uploadId: 727820
