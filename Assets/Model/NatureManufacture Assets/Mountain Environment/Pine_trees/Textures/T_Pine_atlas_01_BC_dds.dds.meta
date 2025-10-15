@@ -1,0 +1,26 @@
+fileFormatVersion: 2
+guid: 640a0ad9ef76dee4da5434c8c5e9c733
+IHVImageFormatImporter:
+  externalObjects: {}
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 2
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  isReadable: 0
+  sRGBTexture: 1
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 191851
+  packageName: Mountain Environment - Dynamic Nature
+  packageVersion: 1.6.0
+  assetPath: Assets/NatureManufacture Assets/Mountain Environment/Pine_trees/Textures/T_Pine_atlas_01_BC_dds.dds
+  uploadId: 760821
