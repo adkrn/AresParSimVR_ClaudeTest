@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 1a9231a63b0ce8341a9e18f318924701
+timeCreated: 1537610487
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 129428
+  packageName: Hangar
+  packageVersion: 5.3.4f1
+  assetPath: Assets/Hangar/FBX/Materials/Hangar_Metal_Rope_Baked.mat
+  uploadId: 269266

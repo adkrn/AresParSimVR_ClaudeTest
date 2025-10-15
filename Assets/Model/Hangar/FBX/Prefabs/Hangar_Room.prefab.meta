@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: a92e309c183ff7949916f7cd8cb9ec05
+timeCreated: 1537649099
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 129428
+  packageName: Hangar
+  packageVersion: 5.3.4f1
+  assetPath: Assets/Hangar/FBX/Prefabs/Hangar_Room.prefab
+  uploadId: 269266

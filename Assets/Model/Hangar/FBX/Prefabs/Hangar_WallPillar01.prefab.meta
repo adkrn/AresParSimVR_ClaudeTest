@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 52c41f56fbba2ba4aa0e9b7a5e036265
+timeCreated: 1537649125
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 129428
+  packageName: Hangar
+  packageVersion: 5.3.4f1
+  assetPath: Assets/Hangar/FBX/Prefabs/Hangar_WallPillar01.prefab
+  uploadId: 269266

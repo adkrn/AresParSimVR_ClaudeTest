@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: 5290c3608ab44ae784fe241e25a03bac
+MonoImporter:
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 309849
+  packageName: Animated Flags URP
+  packageVersion: 1.0 URP
+  assetPath: Assets/Unluck Software/Demo Resources/Scripts/SmoothCameraOrbit.cs
+  uploadId: 749551

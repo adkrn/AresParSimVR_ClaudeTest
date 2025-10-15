@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: a27be00079c9b1447b4b5a37d0fc5627
+timeCreated: 1537645998
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 129428
+  packageName: Hangar
+  packageVersion: 5.3.4f1
+  assetPath: Assets/Hangar/FBX/Prefabs/Hangar_AircraftPull_Vehicle.prefab
+  uploadId: 269266

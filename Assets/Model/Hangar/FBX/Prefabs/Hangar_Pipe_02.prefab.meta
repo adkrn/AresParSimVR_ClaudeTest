@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 5150021f8564d6d47b9168ee6b575bcc
+timeCreated: 1537648735
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 129428
+  packageName: Hangar
+  packageVersion: 5.3.4f1
+  assetPath: Assets/Hangar/FBX/Prefabs/Hangar_Pipe_02.prefab
+  uploadId: 269266

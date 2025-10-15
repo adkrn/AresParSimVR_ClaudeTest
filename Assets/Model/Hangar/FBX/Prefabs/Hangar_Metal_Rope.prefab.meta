@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 3fa0db9e22c525b4ba5fcda472c8a595
+timeCreated: 1537648718
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 129428
+  packageName: Hangar
+  packageVersion: 5.3.4f1
+  assetPath: Assets/Hangar/FBX/Prefabs/Hangar_Metal_Rope.prefab
+  uploadId: 269266

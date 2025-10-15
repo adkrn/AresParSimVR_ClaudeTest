@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 46e63a6e2a2ce9944aa69dab2775464c
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 176482
+  packageName: World Streamer 2
+  packageVersion: 1.8.1
+  assetPath: Assets/NatureManufacture Assets/Demo Scripts/ExtendedFlycam.cs
+  uploadId: 752863

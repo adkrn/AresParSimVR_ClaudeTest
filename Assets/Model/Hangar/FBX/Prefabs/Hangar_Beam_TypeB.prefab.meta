@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 41802f72c836f084baf2cd1b6c305b1b
+timeCreated: 1537646199
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 129428
+  packageName: Hangar
+  packageVersion: 5.3.4f1
+  assetPath: Assets/Hangar/FBX/Prefabs/Hangar_Beam_TypeB.prefab
+  uploadId: 269266

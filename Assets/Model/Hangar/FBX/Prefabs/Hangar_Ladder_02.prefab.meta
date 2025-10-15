@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 734e4c66a5ae0bc4c863ec37c953657b
+timeCreated: 1537648698
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 129428
+  packageName: Hangar
+  packageVersion: 5.3.4f1
+  assetPath: Assets/Hangar/FBX/Prefabs/Hangar_Ladder_02.prefab
+  uploadId: 269266

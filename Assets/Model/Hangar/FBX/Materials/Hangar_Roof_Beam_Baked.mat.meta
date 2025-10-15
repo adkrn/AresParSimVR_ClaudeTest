@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 27da04ce6249dc749ae67b5845db14cc
+timeCreated: 1537556570
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 129428
+  packageName: Hangar
+  packageVersion: 5.3.4f1
+  assetPath: Assets/Hangar/FBX/Materials/Hangar_Roof_Beam_Baked.mat
+  uploadId: 269266

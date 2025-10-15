@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 2daceef302b60e14e9c5facd1bc30b46
+timeCreated: 1537556571
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 129428
+  packageName: Hangar
+  packageVersion: 5.3.4f1
+  assetPath: Assets/Hangar/FBX/Materials/Hangar_Aircraft_Vehicle_Baked.mat
+  uploadId: 269266

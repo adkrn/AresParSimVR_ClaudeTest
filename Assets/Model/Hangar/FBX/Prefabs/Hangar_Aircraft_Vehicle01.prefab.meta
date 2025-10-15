@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: cd47903f82a123848bb43de50ce8d76b
+timeCreated: 1537645973
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 129428
+  packageName: Hangar
+  packageVersion: 5.3.4f1
+  assetPath: Assets/Hangar/FBX/Prefabs/Hangar_Aircraft_Vehicle01.prefab
+  uploadId: 269266

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 23f300489494cab4da0322d06f626f22
+timeCreated: 1537649069
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 129428
+  packageName: Hangar
+  packageVersion: 5.3.4f1
+  assetPath: Assets/Hangar/FBX/Prefabs/Hangar_Roof_Beam.prefab
+  uploadId: 269266

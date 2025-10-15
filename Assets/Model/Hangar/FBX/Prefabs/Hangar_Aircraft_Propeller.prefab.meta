@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 1a1c616ab3b481640b0cac8051518fcd
+timeCreated: 1537645905
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 129428
+  packageName: Hangar
+  packageVersion: 5.3.4f1
+  assetPath: Assets/Hangar/FBX/Prefabs/Hangar_Aircraft_Propeller.prefab
+  uploadId: 269266

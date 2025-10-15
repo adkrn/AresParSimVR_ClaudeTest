@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 42b1ebe6016f08d4eaa3f9f34ab9dce0
+timeCreated: 1537556571
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 129428
+  packageName: Hangar
+  packageVersion: 5.3.4f1
+  assetPath: Assets/Hangar/FBX/Materials/Hangar_Aircraft_Interior_Part02_Baked.mat
+  uploadId: 269266

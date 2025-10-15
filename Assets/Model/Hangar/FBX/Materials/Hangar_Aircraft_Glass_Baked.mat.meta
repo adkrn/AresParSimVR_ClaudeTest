@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 0f3c5286756ca2246b897e81170d847c
+timeCreated: 1537556571
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 129428
+  packageName: Hangar
+  packageVersion: 5.3.4f1
+  assetPath: Assets/Hangar/FBX/Materials/Hangar_Aircraft_Glass_Baked.mat
+  uploadId: 269266

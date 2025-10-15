@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 233b758697a13854497e7701d8ae21e0
+timeCreated: 1537556573
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 129428
+  packageName: Hangar
+  packageVersion: 5.3.4f1
+  assetPath: Assets/Hangar/FBX/Materials/Hangar_Ladder_02_Baked.mat
+  uploadId: 269266

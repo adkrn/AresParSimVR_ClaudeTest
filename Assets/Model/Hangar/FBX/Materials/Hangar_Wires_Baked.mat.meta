@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: d1f276680d8fa6345ae9eb454a5fe8a6
+timeCreated: 1537556572
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 129428
+  packageName: Hangar
+  packageVersion: 5.3.4f1
+  assetPath: Assets/Hangar/FBX/Materials/Hangar_Wires_Baked.mat
+  uploadId: 269266

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 1532df67fb4adcd40a36a3b5aad76cfc
+timeCreated: 1537646233
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 129428
+  packageName: Hangar
+  packageVersion: 5.3.4f1
+  assetPath: Assets/Hangar/FBX/Prefabs/Hangar_Drums.prefab
+  uploadId: 269266

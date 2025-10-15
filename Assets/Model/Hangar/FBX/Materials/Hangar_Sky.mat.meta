@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 0e080e113a73a3e4d814ecd0020096fc
+timeCreated: 1537610900
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 129428
+  packageName: Hangar
+  packageVersion: 5.3.4f1
+  assetPath: Assets/Hangar/FBX/Materials/Hangar_Sky.mat
+  uploadId: 269266

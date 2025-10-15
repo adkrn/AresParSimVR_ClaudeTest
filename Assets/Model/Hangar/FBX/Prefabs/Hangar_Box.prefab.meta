@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 72e888b0a8f5ef648abee903e682873f
+timeCreated: 1537646206
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 129428
+  packageName: Hangar
+  packageVersion: 5.3.4f1
+  assetPath: Assets/Hangar/FBX/Prefabs/Hangar_Box.prefab
+  uploadId: 269266

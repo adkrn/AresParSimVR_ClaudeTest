@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 53a9c2aab6d2274478d69ca7ac3b2ecf
+timeCreated: 1537649116
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 129428
+  packageName: Hangar
+  packageVersion: 5.3.4f1
+  assetPath: Assets/Hangar/FBX/Prefabs/Hangar_Wall.prefab
+  uploadId: 269266

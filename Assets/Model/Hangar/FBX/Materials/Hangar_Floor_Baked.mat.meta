@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 8893c07468451394e84ef4354a5fde2b
+timeCreated: 1537556570
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 129428
+  packageName: Hangar
+  packageVersion: 5.3.4f1
+  assetPath: Assets/Hangar/FBX/Materials/Hangar_Floor_Baked.mat
+  uploadId: 269266

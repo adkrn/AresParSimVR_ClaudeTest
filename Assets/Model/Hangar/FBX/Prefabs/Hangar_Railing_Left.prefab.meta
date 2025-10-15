@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: cf9b9e3460b964744b230414762656e2
+timeCreated: 1537648744
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 129428
+  packageName: Hangar
+  packageVersion: 5.3.4f1
+  assetPath: Assets/Hangar/FBX/Prefabs/Hangar_Railing_Left.prefab
+  uploadId: 269266

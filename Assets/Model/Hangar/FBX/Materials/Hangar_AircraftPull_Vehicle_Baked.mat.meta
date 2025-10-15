@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: ab067e46f837f064e8d24a827cff785f
+timeCreated: 1537556573
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 129428
+  packageName: Hangar
+  packageVersion: 5.3.4f1
+  assetPath: Assets/Hangar/FBX/Materials/Hangar_AircraftPull_Vehicle_Baked.mat
+  uploadId: 269266

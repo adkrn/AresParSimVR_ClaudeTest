@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: ca5a43a5876758f4e9fb406905746835
+MonoImporter:
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 309849
+  packageName: Animated Flags URP
+  packageVersion: 1.0 URP
+  assetPath: Assets/Unluck Software/Animated Flags/Scripts/UnluckAnimatedMesh.cs
+  uploadId: 749551

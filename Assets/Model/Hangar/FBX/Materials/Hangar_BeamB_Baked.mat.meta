@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 6d4ede90442c0b84c81b69633defa8e1
+timeCreated: 1537556573
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 129428
+  packageName: Hangar
+  packageVersion: 5.3.4f1
+  assetPath: Assets/Hangar/FBX/Materials/Hangar_BeamB_Baked.mat
+  uploadId: 269266
