@@ -1,0 +1,67 @@
+name: jira-integration
+
+on:
+  create:
+    types: [branch]
+  push:
+    branches: ["*"]
+  pull_request:
+    types: [opened, closed]
+
+jobs:
+  branch-to-in-progress:
+    runs-on: windows
+    if: github.event.ref_type == 'branch'
+    steps:
+      - name: Move issue to IN PROGRESS on branch create
+        uses: appleboy/jira-action@v0.2.0
+        with:
+          base_url: https://ernham1.atlassian.net
+          token: ${{ secrets.JIRA_TOKEN }}
+          email: ${{ secrets.JIRA_USER_EMAIL }}
+          ref: ${{ github.ref_name }}
+          transition: "IN PROGRESS"
+          assignee: ${{ github.actor }}
+
+  commit-update:
+    runs-on: windows
+    steps:
+      - name: Update issue from commit
+        uses: appleboy/jira-action@v0.2.0
+        with:
+          base_url: https://ernham1.atlassian.net
+          token: ${{ secrets.JIRA_TOKEN }}
+          email: ${{ secrets.JIRA_USER_EMAIL }}
+          ref: ${{ github.event.head_commit.message }}
+          transition: "IN PROGRESS"
+          assignee: ${{ github.actor }}
+          comment: |
+            [커밋 확인 링크](${{ github.event.head_commit.url }})
+            ${{ github.event.head_commit.message }}
+
+  pr-to-review:
+    runs-on: windows
+    if: github.event.action == 'opened'
+    steps:
+      - name: Move issue to REVIEW on pull request creation
+        uses: appleboy/jira-action@v0.2.0
+        with:
+          base_url: https://ernham1.atlassian.net
+          token: ${{ secrets.JIRA_TOKEN }}
+          email: ${{ secrets.JIRA_USER_EMAIL }}
+          ref: ${{ github.event.pull_request.title }}
+          transition: "REVIEW"
+
+  pr-to-done:
+    runs-on: windows
+    if: github.event.pull_request.merged == true
+    steps:
+      - name: Move issue to DONE on pull request merge
+        uses: appleboy/jira-action@v0.2.0
+        with:
+          base_url: https://ernham1.atlassian.net
+          token: ${{ secrets.JIRA_TOKEN }}
+          email: ${{ secrets.JIRA_USER_EMAIL }}
+          ref: ${{ github.event.pull_request.title }}
+          transition: "DONE"
+          resolution: "Fixed"
