@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 8d35592d67ecf024984e8384880ca56c
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 176482
+  packageName: World Streamer 2
+  packageVersion: 1.8.1
+  assetPath: Assets/NatureManufacture Assets/WorldStreamer/Scritps/Terrain/Editor/TerrainSplitterCPU.cs
+  uploadId: 752863

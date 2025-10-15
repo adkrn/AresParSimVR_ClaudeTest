@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: b91e5f5342a55594ca10e52c86fe5931
+MonoImporter:
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 176482
+  packageName: World Streamer 2
+  packageVersion: 1.8.1
+  assetPath: Assets/NatureManufacture Assets/WorldStreamer/Scritps/PlaceTargetWithMouse.cs
+  uploadId: 752863

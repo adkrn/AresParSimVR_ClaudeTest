@@ -1,0 +1,19 @@
+fileFormatVersion: 2
+guid: 40326058b0d05184ca7335c8e283e683
+timeCreated: 1429020454
+licenseType: Store
+MonoImporter:
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 176482
+  packageName: World Streamer 2
+  packageVersion: 1.8.1
+  assetPath: Assets/NatureManufacture Assets/WorldStreamer/Scritps/Scene/SceneSplit.cs
+  uploadId: 752863

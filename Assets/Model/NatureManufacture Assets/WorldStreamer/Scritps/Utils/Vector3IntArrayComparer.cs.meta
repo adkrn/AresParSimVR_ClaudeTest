@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: b4ff2ed7525def844ab4d900c636d751
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 176482
+  packageName: World Streamer 2
+  packageVersion: 1.8.1
+  assetPath: Assets/NatureManufacture Assets/WorldStreamer/Scritps/Utils/Vector3IntArrayComparer.cs
+  uploadId: 752863

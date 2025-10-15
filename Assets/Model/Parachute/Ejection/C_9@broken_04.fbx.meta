@@ -1,0 +1,282 @@
+fileFormatVersion: 2
+guid: 4d9aec073dd5d7c4588fdd88b53007f1
+timeCreated: 1482198110
+licenseType: Free
+ModelImporter:
+  serializedVersion: 19
+  fileIDToRecycleName:
+    100000: C9_Joint
+    100002: C_9
+    100004: C_9 1
+    100006: //RootNode
+    100008: C_9_belt2
+    100010: C_9_belt2 1
+    100012: C_9_broken_04
+    100014: C_9_L_handle
+    100016: C_9_L_handle 1
+    100018: C_9_main
+    100020: C_9_main 1
+    100022: C_9_R_handle
+    100024: C_9_R_handle 1
+    100026: L_Hand_1
+    100028: L_Hand_2
+    100030: L_Line
+    100032: L_Line 1
+    100034: L_Line_A
+    100036: L_Line_A_1
+    100038: L_Line_A_2
+    100040: L_Line_A_3
+    100042: L_Line_A_4
+    100044: L_Line_A_5
+    100046: L_Line_B
+    100048: L_Line_B_1
+    100050: L_Line_B_2
+    100052: L_Line_B_3
+    100054: L_Line_B_4
+    100056: L_Line_B_5
+    100058: R_Hand_1
+    100060: R_Hand_2
+    100062: R_Line
+    100064: R_Line 1
+    100066: R_Rine_A
+    100068: R_Rine_A_1
+    100070: R_Rine_A_2
+    100072: R_Rine_A_3
+    100074: R_Rine_A_4
+    100076: R_Rine_A_5
+    100078: R_Rine_B
+    100080: R_Rine_B_1
+    100082: R_Rine_B_2
+    100084: R_Rine_B_3
+    100086: R_Rine_B_4
+    100088: R_Rine_B_5
+    100090: Wing_01
+    100092: Wing_02
+    100094: Wing_03
+    100096: wing_A_1
+    100098: wing_A_2
+    100100: wing_A_3
+    100102: wing_A_4
+    100104: wing_A_5
+    100106: wing_B_1
+    100108: wing_B_2
+    100110: wing_B_3
+    100112: wing_B_4
+    100114: wing_B_5
+    100116: wing_C_1
+    100118: wing_C_2
+    100120: wing_C_3
+    100122: wing_C_4
+    100124: wing_C_5
+    100126: Wing_center
+    100128: wing_D_1
+    100130: wing_D_2
+    100132: wing_D_3
+    100134: wing_D_4
+    100136: wing_D_5
+    100138: wing_E_1
+    100140: wing_E_2
+    100142: wing_E_3
+    100144: wing_E_4
+    100146: wing_E_5
+    100148: wing_F_1
+    100150: wing_F_2
+    100152: wing_F_3
+    100154: wing_F_4
+    100156: wing_F_5
+    100158: wing_G_1
+    100160: wing_G_2
+    100162: wing_G_3
+    100164: wing_G_4
+    100166: wing_G_5
+    100168: wing_H_1
+    100170: wing_H_2
+    100172: wing_H_3
+    100174: wing_H_4
+    100176: wing_H_5
+    400000: C9_Joint
+    400002: C_9
+    400004: C_9 1
+    400006: //RootNode
+    400008: C_9_belt2
+    400010: C_9_belt2 1
+    400012: C_9_broken_04
+    400014: C_9_L_handle
+    400016: C_9_L_handle 1
+    400018: C_9_main
+    400020: C_9_main 1
+    400022: C_9_R_handle
+    400024: C_9_R_handle 1
+    400026: L_Hand_1
+    400028: L_Hand_2
+    400030: L_Line
+    400032: L_Line 1
+    400034: L_Line_A
+    400036: L_Line_A_1
+    400038: L_Line_A_2
+    400040: L_Line_A_3
+    400042: L_Line_A_4
+    400044: L_Line_A_5
+    400046: L_Line_B
+    400048: L_Line_B_1
+    400050: L_Line_B_2
+    400052: L_Line_B_3
+    400054: L_Line_B_4
+    400056: L_Line_B_5
+    400058: R_Hand_1
+    400060: R_Hand_2
+    400062: R_Line
+    400064: R_Line 1
+    400066: R_Rine_A
+    400068: R_Rine_A_1
+    400070: R_Rine_A_2
+    400072: R_Rine_A_3
+    400074: R_Rine_A_4
+    400076: R_Rine_A_5
+    400078: R_Rine_B
+    400080: R_Rine_B_1
+    400082: R_Rine_B_2
+    400084: R_Rine_B_3
+    400086: R_Rine_B_4
+    400088: R_Rine_B_5
+    400090: Wing_01
+    400092: Wing_02
+    400094: Wing_03
+    400096: wing_A_1
+    400098: wing_A_2
+    400100: wing_A_3
+    400102: wing_A_4
+    400104: wing_A_5
+    400106: wing_B_1
+    400108: wing_B_2
+    400110: wing_B_3
+    400112: wing_B_4
+    400114: wing_B_5
+    400116: wing_C_1
+    400118: wing_C_2
+    400120: wing_C_3
+    400122: wing_C_4
+    400124: wing_C_5
+    400126: Wing_center
+    400128: wing_D_1
+    400130: wing_D_2
+    400132: wing_D_3
+    400134: wing_D_4
+    400136: wing_D_5
+    400138: wing_E_1
+    400140: wing_E_2
+    400142: wing_E_3
+    400144: wing_E_4
+    400146: wing_E_5
+    400148: wing_F_1
+    400150: wing_F_2
+    400152: wing_F_3
+    400154: wing_F_4
+    400156: wing_F_5
+    400158: wing_G_1
+    400160: wing_G_2
+    400162: wing_G_3
+    400164: wing_G_4
+    400166: wing_G_5
+    400168: wing_H_1
+    400170: wing_H_2
+    400172: wing_H_3
+    400174: wing_H_4
+    400176: wing_H_5
+    2300000: C_9_belt2
+    2300002: C_9_L_handle
+    2300004: C_9_main
+    2300006: C_9_R_handle
+    2300008: L_Line
+    2300010: R_Line
+    3300000: C_9_belt2
+    3300002: C_9_L_handle
+    3300004: C_9_main
+    3300006: C_9_R_handle
+    3300008: L_Line
+    3300010: R_Line
+    4300000: C_9_belt2
+    4300002: C_9_R_handle
+    4300004: C_9_L_handle
+    4300006: C_9_main
+    4300008: L_Line
+    4300010: R_Line
+    4300012: C_9_belt2
+    4300014: C_9_R_handle
+    4300016: C_9_L_handle
+    4300018: C_9_main
+    4300020: L_Line
+    4300022: R_Line
+    7400000: Take 001
+    9500000: //RootNode
+    11100000: //RootNode
+    13700000: C_9_belt2 1
+    13700002: C_9_L_handle 1
+    13700004: C_9_main 1
+    13700006: C_9_R_handle 1
+    13700008: L_Line 1
+    13700010: R_Line 1
+  materials:
+    importMaterials: 1
+    materialName: 0
+    materialSearch: 1
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    resampleCurves: 1
+    optimizeGameObjects: 0
+    motionNodeName: 
+    animationImportErrors: 
+    animationImportWarnings: 
+    animationRetargetingWarnings: 
+    animationDoRetargetingWarnings: 0
+    animationCompression: 1
+    animationRotationError: 0.5
+    animationPositionError: 0.5
+    animationScaleError: 0.5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    clipAnimations: []
+    isReadable: 1
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 2.7
+    meshCompression: 0
+    addColliders: 0
+    importBlendShapes: 1
+    swapUVChannels: 0
+    generateSecondaryUV: 0
+    useFileUnits: 1
+    optimizeMeshForGPU: 1
+    keepQuads: 0
+    weldVertices: 1
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVPackMargin: 4
+    useFileScale: 1
+  tangentSpace:
+    normalSmoothAngle: 60
+    normalImportMode: 0
+    tangentImportMode: 3
+  importAnimation: 1
+  copyAvatar: 0
+  humanDescription:
+    human: []
+    skeleton: []
+    armTwist: 0.5
+    foreArmTwist: 0.5
+    upperLegTwist: 0.5
+    legTwist: 0.5
+    armStretch: 0.05
+    legStretch: 0.05
+    feetSpacing: 0
+    rootMotionBoneName: 
+    hasTranslationDoF: 0
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  animationType: 1
+  humanoidOversampling: 1
+  additionalBone: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

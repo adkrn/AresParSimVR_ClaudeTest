@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: b1d4e57224d48f54290c91f46a547bce
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 176482
+  packageName: World Streamer 2
+  packageVersion: 1.8.1
+  assetPath: Assets/NatureManufacture Assets/WorldStreamer/Scritps/Terrain/MeshDrawerInstance.cs
+  uploadId: 752863

@@ -1,0 +1,819 @@
+fileFormatVersion: 2
+guid: 4a634a8ac3a278542b052cc5337f699d
+ModelImporter:
+  serializedVersion: 19301
+  internalIDToNameTable:
+  - first:
+      1: 100000
+    second: body
+  - first:
+      1: 100002
+    second: body 1
+  - first:
+      1: 100004
+    second: face
+  - first:
+      1: 100006
+    second: hat
+  - first:
+      1: 100008
+    second: nc
+  - first:
+      1: 100010
+    second: pasted__Robot_Head
+  - first:
+      1: 100012
+    second: pasted__Robot_Head_End
+  - first:
+      1: 100014
+    second: pasted__Robot_LeftArm
+  - first:
+      1: 100016
+    second: pasted__Robot_LeftForeArm
+  - first:
+      1: 100018
+    second: pasted__Robot_LeftHand
+  - first:
+      1: 100020
+    second: pasted__Robot_LeftHandIndex1
+  - first:
+      1: 100022
+    second: pasted__Robot_LeftHandIndex2
+  - first:
+      1: 100024
+    second: pasted__Robot_LeftHandIndex3
+  - first:
+      1: 100026
+    second: pasted__Robot_LeftHandIndex4
+  - first:
+      1: 100028
+    second: pasted__Robot_LeftHandMiddle1
+  - first:
+      1: 100030
+    second: pasted__Robot_LeftHandMiddle2
+  - first:
+      1: 100032
+    second: pasted__Robot_LeftHandMiddle3
+  - first:
+      1: 100034
+    second: pasted__Robot_LeftHandMiddle4
+  - first:
+      1: 100036
+    second: pasted__Robot_LeftHandPinky1
+  - first:
+      1: 100038
+    second: pasted__Robot_LeftHandPinky2
+  - first:
+      1: 100040
+    second: pasted__Robot_LeftHandPinky3
+  - first:
+      1: 100042
+    second: pasted__Robot_LeftHandPinky4
+  - first:
+      1: 100044
+    second: pasted__Robot_LeftHandRing1
+  - first:
+      1: 100046
+    second: pasted__Robot_LeftHandRing2
+  - first:
+      1: 100048
+    second: pasted__Robot_LeftHandRing3
+  - first:
+      1: 100050
+    second: pasted__Robot_LeftHandRing4
+  - first:
+      1: 100052
+    second: pasted__Robot_LeftHandThumb1
+  - first:
+      1: 100054
+    second: pasted__Robot_LeftHandThumb2
+  - first:
+      1: 100056
+    second: pasted__Robot_LeftHandThumb3
+  - first:
+      1: 100058
+    second: pasted__Robot_LeftHandThumb4
+  - first:
+      1: 100060
+    second: pasted__Robot_LeftInHandIndex
+  - first:
+      1: 100062
+    second: pasted__Robot_LeftInHandMiddle
+  - first:
+      1: 100064
+    second: pasted__Robot_LeftInHandPinky
+  - first:
+      1: 100066
+    second: pasted__Robot_LeftInHandRing
+  - first:
+      1: 100068
+    second: //RootNode
+  - first:
+      1: 100070
+    second: Robot_Hips
+  - first:
+      1: 100072
+    second: Robot_LeftFoot
+  - first:
+      1: 100074
+    second: Robot_LeftLeg
+  - first:
+      1: 100076
+    second: Robot_LeftShoulder
+  - first:
+      1: 100078
+    second: Robot_LeftToeBase
+  - first:
+      1: 100080
+    second: Robot_LeftUpLeg
+  - first:
+      1: 100082
+    second: Robot_Neck
+  - first:
+      1: 100084
+    second: Robot_Reference
+  - first:
+      1: 100086
+    second: Robot_References
+  - first:
+      1: 100088
+    second: Robot_RightArm
+  - first:
+      1: 100090
+    second: Robot_RightFoot
+  - first:
+      1: 100092
+    second: Robot_RightForeArm
+  - first:
+      1: 100094
+    second: Robot_RightHand
+  - first:
+      1: 100096
+    second: Robot_RightHandIndex1
+  - first:
+      1: 100098
+    second: Robot_RightHandIndex2
+  - first:
+      1: 100100
+    second: Robot_RightHandIndex3
+  - first:
+      1: 100102
+    second: Robot_RightHandIndex4
+  - first:
+      1: 100104
+    second: Robot_RightHandMiddle1
+  - first:
+      1: 100106
+    second: Robot_RightHandMiddle2
+  - first:
+      1: 100108
+    second: Robot_RightHandMiddle3
+  - first:
+      1: 100110
+    second: Robot_RightHandMiddle4
+  - first:
+      1: 100112
+    second: Robot_RightHandPinky1
+  - first:
+      1: 100114
+    second: Robot_RightHandPinky2
+  - first:
+      1: 100116
+    second: Robot_RightHandPinky3
+  - first:
+      1: 100118
+    second: Robot_RightHandPinky4
+  - first:
+      1: 100120
+    second: Robot_RightHandRing1
+  - first:
+      1: 100122
+    second: Robot_RightHandRing2
+  - first:
+      1: 100124
+    second: Robot_RightHandRing3
+  - first:
+      1: 100126
+    second: Robot_RightHandRing4
+  - first:
+      1: 100128
+    second: Robot_RightHandThumb1
+  - first:
+      1: 100130
+    second: Robot_RightHandThumb2
+  - first:
+      1: 100132
+    second: Robot_RightHandThumb3
+  - first:
+      1: 100134
+    second: Robot_RightHandThumb4
+  - first:
+      1: 100136
+    second: Robot_RightInHandIndex
+  - first:
+      1: 100138
+    second: Robot_RightInHandMiddle
+  - first:
+      1: 100140
+    second: Robot_RightInHandPinky
+  - first:
+      1: 100142
+    second: Robot_RightInHandRing
+  - first:
+      1: 100144
+    second: Robot_RightLeg
+  - first:
+      1: 100146
+    second: Robot_RightShoulder
+  - first:
+      1: 100148
+    second: Robot_RightToeBase
+  - first:
+      1: 100150
+    second: Robot_RightUpLeg
+  - first:
+      1: 100152
+    second: Robot_Spine
+  - first:
+      1: 100154
+    second: Robot_Spine1
+  - first:
+      1: 100156
+    second: Robot_Spine2
+  - first:
+      1: 100158
+    second: Robot_Spine3
+  - first:
+      4: 400000
+    second: body
+  - first:
+      4: 400002
+    second: body 1
+  - first:
+      4: 400004
+    second: face
+  - first:
+      4: 400006
+    second: hat
+  - first:
+      4: 400008
+    second: nc
+  - first:
+      4: 400010
+    second: pasted__Robot_Head
+  - first:
+      4: 400012
+    second: pasted__Robot_Head_End
+  - first:
+      4: 400014
+    second: pasted__Robot_LeftArm
+  - first:
+      4: 400016
+    second: pasted__Robot_LeftForeArm
+  - first:
+      4: 400018
+    second: pasted__Robot_LeftHand
+  - first:
+      4: 400020
+    second: pasted__Robot_LeftHandIndex1
+  - first:
+      4: 400022
+    second: pasted__Robot_LeftHandIndex2
+  - first:
+      4: 400024
+    second: pasted__Robot_LeftHandIndex3
+  - first:
+      4: 400026
+    second: pasted__Robot_LeftHandIndex4
+  - first:
+      4: 400028
+    second: pasted__Robot_LeftHandMiddle1
+  - first:
+      4: 400030
+    second: pasted__Robot_LeftHandMiddle2
+  - first:
+      4: 400032
+    second: pasted__Robot_LeftHandMiddle3
+  - first:
+      4: 400034
+    second: pasted__Robot_LeftHandMiddle4
+  - first:
+      4: 400036
+    second: pasted__Robot_LeftHandPinky1
+  - first:
+      4: 400038
+    second: pasted__Robot_LeftHandPinky2
+  - first:
+      4: 400040
+    second: pasted__Robot_LeftHandPinky3
+  - first:
+      4: 400042
+    second: pasted__Robot_LeftHandPinky4
+  - first:
+      4: 400044
+    second: pasted__Robot_LeftHandRing1
+  - first:
+      4: 400046
+    second: pasted__Robot_LeftHandRing2
+  - first:
+      4: 400048
+    second: pasted__Robot_LeftHandRing3
+  - first:
+      4: 400050
+    second: pasted__Robot_LeftHandRing4
+  - first:
+      4: 400052
+    second: pasted__Robot_LeftHandThumb1
+  - first:
+      4: 400054
+    second: pasted__Robot_LeftHandThumb2
+  - first:
+      4: 400056
+    second: pasted__Robot_LeftHandThumb3
+  - first:
+      4: 400058
+    second: pasted__Robot_LeftHandThumb4
+  - first:
+      4: 400060
+    second: pasted__Robot_LeftInHandIndex
+  - first:
+      4: 400062
+    second: pasted__Robot_LeftInHandMiddle
+  - first:
+      4: 400064
+    second: pasted__Robot_LeftInHandPinky
+  - first:
+      4: 400066
+    second: pasted__Robot_LeftInHandRing
+  - first:
+      4: 400068
+    second: //RootNode
+  - first:
+      4: 400070
+    second: Robot_Hips
+  - first:
+      4: 400072
+    second: Robot_LeftFoot
+  - first:
+      4: 400074
+    second: Robot_LeftLeg
+  - first:
+      4: 400076
+    second: Robot_LeftShoulder
+  - first:
+      4: 400078
+    second: Robot_LeftToeBase
+  - first:
+      4: 400080
+    second: Robot_LeftUpLeg
+  - first:
+      4: 400082
+    second: Robot_Neck
+  - first:
+      4: 400084
+    second: Robot_Reference
+  - first:
+      4: 400086
+    second: Robot_References
+  - first:
+      4: 400088
+    second: Robot_RightArm
+  - first:
+      4: 400090
+    second: Robot_RightFoot
+  - first:
+      4: 400092
+    second: Robot_RightForeArm
+  - first:
+      4: 400094
+    second: Robot_RightHand
+  - first:
+      4: 400096
+    second: Robot_RightHandIndex1
+  - first:
+      4: 400098
+    second: Robot_RightHandIndex2
+  - first:
+      4: 400100
+    second: Robot_RightHandIndex3
+  - first:
+      4: 400102
+    second: Robot_RightHandIndex4
+  - first:
+      4: 400104
+    second: Robot_RightHandMiddle1
+  - first:
+      4: 400106
+    second: Robot_RightHandMiddle2
+  - first:
+      4: 400108
+    second: Robot_RightHandMiddle3
+  - first:
+      4: 400110
+    second: Robot_RightHandMiddle4
+  - first:
+      4: 400112
+    second: Robot_RightHandPinky1
+  - first:
+      4: 400114
+    second: Robot_RightHandPinky2
+  - first:
+      4: 400116
+    second: Robot_RightHandPinky3
+  - first:
+      4: 400118
+    second: Robot_RightHandPinky4
+  - first:
+      4: 400120
+    second: Robot_RightHandRing1
+  - first:
+      4: 400122
+    second: Robot_RightHandRing2
+  - first:
+      4: 400124
+    second: Robot_RightHandRing3
+  - first:
+      4: 400126
+    second: Robot_RightHandRing4
+  - first:
+      4: 400128
+    second: Robot_RightHandThumb1
+  - first:
+      4: 400130
+    second: Robot_RightHandThumb2
+  - first:
+      4: 400132
+    second: Robot_RightHandThumb3
+  - first:
+      4: 400134
+    second: Robot_RightHandThumb4
+  - first:
+      4: 400136
+    second: Robot_RightInHandIndex
+  - first:
+      4: 400138
+    second: Robot_RightInHandMiddle
+  - first:
+      4: 400140
+    second: Robot_RightInHandPinky
+  - first:
+      4: 400142
+    second: Robot_RightInHandRing
+  - first:
+      4: 400144
+    second: Robot_RightLeg
+  - first:
+      4: 400146
+    second: Robot_RightShoulder
+  - first:
+      4: 400148
+    second: Robot_RightToeBase
+  - first:
+      4: 400150
+    second: Robot_RightUpLeg
+  - first:
+      4: 400152
+    second: Robot_Spine
+  - first:
+      4: 400154
+    second: Robot_Spine1
+  - first:
+      4: 400156
+    second: Robot_Spine2
+  - first:
+      4: 400158
+    second: Robot_Spine3
+  - first:
+      43: 4300000
+    second: face
+  - first:
+      43: 4300002
+    second: hat
+  - first:
+      43: 4300004
+    second: body
+  - first:
+      43: 4300006
+    second: nc
+  - first:
+      74: 7400000
+    second: F_5
+  - first:
+      95: 9500000
+    second: //RootNode
+  - first:
+      111: 11100000
+    second: //RootNode
+  - first:
+      137: 13700000
+    second: body 1
+  - first:
+      137: 13700002
+    second: face
+  - first:
+      137: 13700004
+    second: hat
+  - first:
+      137: 13700006
+    second: nc
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Pliot_04_test_PILOTTex_0004_7_046dds
+    second: {fileID: 2100000, guid: 2a9fefb7bd7fe874c87d0637e46d9ecc, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Pliot_04_test_PILOTTex_0005_1_046dds
+    second: {fileID: 2100000, guid: 491d7e1d043046741808751efccc51db, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Pliot_04_test_PILOTTex_0008_1_046dds
+    second: {fileID: 2100000, guid: a5850751cce712f459132c1020799852, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Pliot_04_test_Tex_0004_1
+    second: {fileID: 2100000, guid: 2a9fefb7bd7fe874c87d0637e46d9ecc, type: 2}
+  materials:
+    materialImportMode: 1
+    materialName: 0
+    materialSearch: 1
+    materialLocation: 0
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    resampleCurves: 1
+    optimizeGameObjects: 0
+    motionNodeName: 
+    rigImportErrors: 
+    rigImportWarnings: 
+    animationImportErrors: 
+    animationImportWarnings: 
+    animationRetargetingWarnings: 
+    animationDoRetargetingWarnings: 0
+    importAnimatedCustomProperties: 0
+    importConstraints: 0
+    animationCompression: 1
+    animationRotationError: 0.5
+    animationPositionError: 0.5
+    animationScaleError: 0.5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    extraUserProperties: []
+    clipAnimations:
+    - serializedVersion: 16
+      name: F_5
+      takeName: Take 001
+      internalID: 0
+      firstFrame: 0
+      lastFrame: 20
+      wrapMode: 0
+      orientationOffsetY: 0
+      level: 0
+      cycleOffset: 0
+      loop: 0
+      hasAdditiveReferencePose: 0
+      loopTime: 0
+      loopBlend: 0
+      loopBlendOrientation: 0
+      loopBlendPositionY: 0
+      loopBlendPositionXZ: 0
+      keepOriginalOrientation: 0
+      keepOriginalPositionY: 1
+      keepOriginalPositionXZ: 0
+      heightFromFeet: 0
+      mirror: 0
+      bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+      curves: []
+      events: []
+      transformMask:
+      - path: 
+        weight: 1
+      - path: body
+        weight: 0
+      - path: body/body 1
+        weight: 0
+      - path: body/face
+        weight: 0
+      - path: body/hat
+        weight: 0
+      - path: body/nc
+        weight: 0
+      - path: Robot_References
+        weight: 1
+      - path: Robot_References/Robot_Reference
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_LeftUpLeg
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_LeftUpLeg/Robot_LeftLeg
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_LeftUpLeg/Robot_LeftLeg/Robot_LeftFoot
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_LeftUpLeg/Robot_LeftLeg/Robot_LeftFoot/Robot_LeftToeBase
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_RightUpLeg
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_RightUpLeg/Robot_RightLeg
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_RightUpLeg/Robot_RightLeg/Robot_RightFoot
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_RightUpLeg/Robot_RightLeg/Robot_RightFoot/Robot_RightToeBase
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_LeftShoulder
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_LeftShoulder/pasted__Robot_LeftArm
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_LeftShoulder/pasted__Robot_LeftArm/pasted__Robot_LeftForeArm
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_LeftShoulder/pasted__Robot_LeftArm/pasted__Robot_LeftForeArm/pasted__Robot_LeftHand
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_LeftShoulder/pasted__Robot_LeftArm/pasted__Robot_LeftForeArm/pasted__Robot_LeftHand/pasted__Robot_LeftHandThumb1
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_LeftShoulder/pasted__Robot_LeftArm/pasted__Robot_LeftForeArm/pasted__Robot_LeftHand/pasted__Robot_LeftHandThumb1/pasted__Robot_LeftHandThumb2
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_LeftShoulder/pasted__Robot_LeftArm/pasted__Robot_LeftForeArm/pasted__Robot_LeftHand/pasted__Robot_LeftHandThumb1/pasted__Robot_LeftHandThumb2/pasted__Robot_LeftHandThumb3
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_LeftShoulder/pasted__Robot_LeftArm/pasted__Robot_LeftForeArm/pasted__Robot_LeftHand/pasted__Robot_LeftHandThumb1/pasted__Robot_LeftHandThumb2/pasted__Robot_LeftHandThumb3/pasted__Robot_LeftHandThumb4
+        weight: 0
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_LeftShoulder/pasted__Robot_LeftArm/pasted__Robot_LeftForeArm/pasted__Robot_LeftHand/pasted__Robot_LeftInHandIndex
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_LeftShoulder/pasted__Robot_LeftArm/pasted__Robot_LeftForeArm/pasted__Robot_LeftHand/pasted__Robot_LeftInHandIndex/pasted__Robot_LeftHandIndex1
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_LeftShoulder/pasted__Robot_LeftArm/pasted__Robot_LeftForeArm/pasted__Robot_LeftHand/pasted__Robot_LeftInHandIndex/pasted__Robot_LeftHandIndex1/pasted__Robot_LeftHandIndex2
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_LeftShoulder/pasted__Robot_LeftArm/pasted__Robot_LeftForeArm/pasted__Robot_LeftHand/pasted__Robot_LeftInHandIndex/pasted__Robot_LeftHandIndex1/pasted__Robot_LeftHandIndex2/pasted__Robot_LeftHandIndex3
+        weight: 0
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_LeftShoulder/pasted__Robot_LeftArm/pasted__Robot_LeftForeArm/pasted__Robot_LeftHand/pasted__Robot_LeftInHandIndex/pasted__Robot_LeftHandIndex1/pasted__Robot_LeftHandIndex2/pasted__Robot_LeftHandIndex3/pasted__Robot_LeftHandIndex4
+        weight: 0
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_LeftShoulder/pasted__Robot_LeftArm/pasted__Robot_LeftForeArm/pasted__Robot_LeftHand/pasted__Robot_LeftInHandMiddle
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_LeftShoulder/pasted__Robot_LeftArm/pasted__Robot_LeftForeArm/pasted__Robot_LeftHand/pasted__Robot_LeftInHandMiddle/pasted__Robot_LeftHandMiddle1
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_LeftShoulder/pasted__Robot_LeftArm/pasted__Robot_LeftForeArm/pasted__Robot_LeftHand/pasted__Robot_LeftInHandMiddle/pasted__Robot_LeftHandMiddle1/pasted__Robot_LeftHandMiddle2
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_LeftShoulder/pasted__Robot_LeftArm/pasted__Robot_LeftForeArm/pasted__Robot_LeftHand/pasted__Robot_LeftInHandMiddle/pasted__Robot_LeftHandMiddle1/pasted__Robot_LeftHandMiddle2/pasted__Robot_LeftHandMiddle3
+        weight: 0
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_LeftShoulder/pasted__Robot_LeftArm/pasted__Robot_LeftForeArm/pasted__Robot_LeftHand/pasted__Robot_LeftInHandMiddle/pasted__Robot_LeftHandMiddle1/pasted__Robot_LeftHandMiddle2/pasted__Robot_LeftHandMiddle3/pasted__Robot_LeftHandMiddle4
+        weight: 0
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_LeftShoulder/pasted__Robot_LeftArm/pasted__Robot_LeftForeArm/pasted__Robot_LeftHand/pasted__Robot_LeftInHandPinky
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_LeftShoulder/pasted__Robot_LeftArm/pasted__Robot_LeftForeArm/pasted__Robot_LeftHand/pasted__Robot_LeftInHandPinky/pasted__Robot_LeftHandPinky1
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_LeftShoulder/pasted__Robot_LeftArm/pasted__Robot_LeftForeArm/pasted__Robot_LeftHand/pasted__Robot_LeftInHandPinky/pasted__Robot_LeftHandPinky1/pasted__Robot_LeftHandPinky2
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_LeftShoulder/pasted__Robot_LeftArm/pasted__Robot_LeftForeArm/pasted__Robot_LeftHand/pasted__Robot_LeftInHandPinky/pasted__Robot_LeftHandPinky1/pasted__Robot_LeftHandPinky2/pasted__Robot_LeftHandPinky3
+        weight: 0
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_LeftShoulder/pasted__Robot_LeftArm/pasted__Robot_LeftForeArm/pasted__Robot_LeftHand/pasted__Robot_LeftInHandPinky/pasted__Robot_LeftHandPinky1/pasted__Robot_LeftHandPinky2/pasted__Robot_LeftHandPinky3/pasted__Robot_LeftHandPinky4
+        weight: 0
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_LeftShoulder/pasted__Robot_LeftArm/pasted__Robot_LeftForeArm/pasted__Robot_LeftHand/pasted__Robot_LeftInHandRing
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_LeftShoulder/pasted__Robot_LeftArm/pasted__Robot_LeftForeArm/pasted__Robot_LeftHand/pasted__Robot_LeftInHandRing/pasted__Robot_LeftHandRing1
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_LeftShoulder/pasted__Robot_LeftArm/pasted__Robot_LeftForeArm/pasted__Robot_LeftHand/pasted__Robot_LeftInHandRing/pasted__Robot_LeftHandRing1/pasted__Robot_LeftHandRing2
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_LeftShoulder/pasted__Robot_LeftArm/pasted__Robot_LeftForeArm/pasted__Robot_LeftHand/pasted__Robot_LeftInHandRing/pasted__Robot_LeftHandRing1/pasted__Robot_LeftHandRing2/pasted__Robot_LeftHandRing3
+        weight: 0
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_LeftShoulder/pasted__Robot_LeftArm/pasted__Robot_LeftForeArm/pasted__Robot_LeftHand/pasted__Robot_LeftInHandRing/pasted__Robot_LeftHandRing1/pasted__Robot_LeftHandRing2/pasted__Robot_LeftHandRing3/pasted__Robot_LeftHandRing4
+        weight: 0
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_Neck
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_Neck/pasted__Robot_Head
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_Neck/pasted__Robot_Head/pasted__Robot_Head_End
+        weight: 0
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_RightShoulder
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_RightShoulder/Robot_RightArm
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_RightShoulder/Robot_RightArm/Robot_RightForeArm
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_RightShoulder/Robot_RightArm/Robot_RightForeArm/Robot_RightHand
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_RightShoulder/Robot_RightArm/Robot_RightForeArm/Robot_RightHand/Robot_RightHandThumb1
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_RightShoulder/Robot_RightArm/Robot_RightForeArm/Robot_RightHand/Robot_RightHandThumb1/Robot_RightHandThumb2
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_RightShoulder/Robot_RightArm/Robot_RightForeArm/Robot_RightHand/Robot_RightHandThumb1/Robot_RightHandThumb2/Robot_RightHandThumb3
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_RightShoulder/Robot_RightArm/Robot_RightForeArm/Robot_RightHand/Robot_RightHandThumb1/Robot_RightHandThumb2/Robot_RightHandThumb3/Robot_RightHandThumb4
+        weight: 0
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_RightShoulder/Robot_RightArm/Robot_RightForeArm/Robot_RightHand/Robot_RightInHandIndex
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_RightShoulder/Robot_RightArm/Robot_RightForeArm/Robot_RightHand/Robot_RightInHandIndex/Robot_RightHandIndex1
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_RightShoulder/Robot_RightArm/Robot_RightForeArm/Robot_RightHand/Robot_RightInHandIndex/Robot_RightHandIndex1/Robot_RightHandIndex2
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_RightShoulder/Robot_RightArm/Robot_RightForeArm/Robot_RightHand/Robot_RightInHandIndex/Robot_RightHandIndex1/Robot_RightHandIndex2/Robot_RightHandIndex3
+        weight: 0
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_RightShoulder/Robot_RightArm/Robot_RightForeArm/Robot_RightHand/Robot_RightInHandIndex/Robot_RightHandIndex1/Robot_RightHandIndex2/Robot_RightHandIndex3/Robot_RightHandIndex4
+        weight: 0
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_RightShoulder/Robot_RightArm/Robot_RightForeArm/Robot_RightHand/Robot_RightInHandMiddle
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_RightShoulder/Robot_RightArm/Robot_RightForeArm/Robot_RightHand/Robot_RightInHandMiddle/Robot_RightHandMiddle1
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_RightShoulder/Robot_RightArm/Robot_RightForeArm/Robot_RightHand/Robot_RightInHandMiddle/Robot_RightHandMiddle1/Robot_RightHandMiddle2
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_RightShoulder/Robot_RightArm/Robot_RightForeArm/Robot_RightHand/Robot_RightInHandMiddle/Robot_RightHandMiddle1/Robot_RightHandMiddle2/Robot_RightHandMiddle3
+        weight: 0
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_RightShoulder/Robot_RightArm/Robot_RightForeArm/Robot_RightHand/Robot_RightInHandMiddle/Robot_RightHandMiddle1/Robot_RightHandMiddle2/Robot_RightHandMiddle3/Robot_RightHandMiddle4
+        weight: 0
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_RightShoulder/Robot_RightArm/Robot_RightForeArm/Robot_RightHand/Robot_RightInHandPinky
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_RightShoulder/Robot_RightArm/Robot_RightForeArm/Robot_RightHand/Robot_RightInHandPinky/Robot_RightHandPinky1
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_RightShoulder/Robot_RightArm/Robot_RightForeArm/Robot_RightHand/Robot_RightInHandPinky/Robot_RightHandPinky1/Robot_RightHandPinky2
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_RightShoulder/Robot_RightArm/Robot_RightForeArm/Robot_RightHand/Robot_RightInHandPinky/Robot_RightHandPinky1/Robot_RightHandPinky2/Robot_RightHandPinky3
+        weight: 0
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_RightShoulder/Robot_RightArm/Robot_RightForeArm/Robot_RightHand/Robot_RightInHandPinky/Robot_RightHandPinky1/Robot_RightHandPinky2/Robot_RightHandPinky3/Robot_RightHandPinky4
+        weight: 0
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_RightShoulder/Robot_RightArm/Robot_RightForeArm/Robot_RightHand/Robot_RightInHandRing
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_RightShoulder/Robot_RightArm/Robot_RightForeArm/Robot_RightHand/Robot_RightInHandRing/Robot_RightHandRing1
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_RightShoulder/Robot_RightArm/Robot_RightForeArm/Robot_RightHand/Robot_RightInHandRing/Robot_RightHandRing1/Robot_RightHandRing2
+        weight: 1
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_RightShoulder/Robot_RightArm/Robot_RightForeArm/Robot_RightHand/Robot_RightInHandRing/Robot_RightHandRing1/Robot_RightHandRing2/Robot_RightHandRing3
+        weight: 0
+      - path: Robot_References/Robot_Reference/Robot_Hips/Robot_Spine/Robot_Spine1/Robot_Spine2/Robot_Spine3/Robot_RightShoulder/Robot_RightArm/Robot_RightForeArm/Robot_RightHand/Robot_RightInHandRing/Robot_RightHandRing1/Robot_RightHandRing2/Robot_RightHandRing3/Robot_RightHandRing4
+        weight: 0
+      maskType: 0
+      maskSource: {instanceID: 0}
+      additiveReferencePoseFrame: 0
+    isReadable: 1
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 1
+    meshCompression: 0
+    addColliders: 0
+    useSRGBMaterialColor: 1
+    sortHierarchyByName: 1
+    importVisibility: 0
+    importBlendShapes: 1
+    importCameras: 0
+    importLights: 0
+    fileIdsGeneration: 1
+    swapUVChannels: 0
+    generateSecondaryUV: 0
+    useFileUnits: 1
+    keepQuads: 0
+    weldVertices: 1
+    preserveHierarchy: 0
+    skinWeightsMode: 0
+    maxBonesPerVertex: 4
+    minBoneWeight: 0.001
+    meshOptimizationFlags: -1
+    indexFormat: 1
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVPackMargin: 4
+    useFileScale: 1
+  tangentSpace:
+    normalSmoothAngle: 60
+    normalImportMode: 0
+    tangentImportMode: 3
+    normalCalculationMode: 0
+    legacyComputeAllNormalsFromSmoothingGroupsWhenMeshHasBlendShapes: 1
+    blendShapeNormalImportMode: 1
+    normalSmoothingSource: 0
+  referencedClips: []
+  importAnimation: 1
+  humanDescription:
+    serializedVersion: 3
+    human: []
+    skeleton: []
+    armTwist: 0.5
+    foreArmTwist: 0.5
+    upperLegTwist: 0.5
+    legTwist: 0.5
+    armStretch: 0.05
+    legStretch: 0.05
+    feetSpacing: 0
+    globalScale: 1
+    rootMotionBoneName: 
+    hasTranslationDoF: 0
+    hasExtraRoot: 0
+    skeletonHasParents: 0
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  autoGenerateAvatarMappingIfUnspecified: 1
+  animationType: 1
+  humanoidOversampling: 1
+  avatarSetup: 0
+  additionalBone: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

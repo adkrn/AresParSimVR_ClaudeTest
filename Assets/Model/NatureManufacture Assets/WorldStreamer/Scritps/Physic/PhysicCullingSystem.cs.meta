@@ -1,0 +1,19 @@
+fileFormatVersion: 2
+guid: 5e595b6de1a056d42b003b82cb94ccfc
+timeCreated: 1472457881
+licenseType: Store
+MonoImporter:
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 176482
+  packageName: World Streamer 2
+  packageVersion: 1.8.1
+  assetPath: Assets/NatureManufacture Assets/WorldStreamer/Scritps/Physic/PhysicCullingSystem.cs
+  uploadId: 752863

@@ -1,0 +1,19 @@
+fileFormatVersion: 2
+guid: 4a2840b14e73d814b8c52e08a34d2936
+timeCreated: 1444599185
+licenseType: Store
+MonoImporter:
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 176482
+  packageName: World Streamer 2
+  packageVersion: 1.8.1
+  assetPath: Assets/NatureManufacture Assets/WorldStreamer/Scritps/Scene/SceneSplitterSettings.cs
+  uploadId: 752863

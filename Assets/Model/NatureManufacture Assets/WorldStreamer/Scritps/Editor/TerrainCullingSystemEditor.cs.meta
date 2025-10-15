@@ -1,0 +1,19 @@
+fileFormatVersion: 2
+guid: 33ac50fc849a088458f1cacde4ca80af
+timeCreated: 1474013540
+licenseType: Store
+MonoImporter:
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 176482
+  packageName: World Streamer 2
+  packageVersion: 1.8.1
+  assetPath: Assets/NatureManufacture Assets/WorldStreamer/Scritps/Editor/TerrainCullingSystemEditor.cs
+  uploadId: 752863

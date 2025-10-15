@@ -1,0 +1,19 @@
+fileFormatVersion: 2
+guid: 79d44dcf7738cb042aedddb808b48e4f
+timeCreated: 1454674215
+licenseType: Store
+MonoImporter:
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 176482
+  packageName: World Streamer 2
+  packageVersion: 1.8.1
+  assetPath: Assets/NatureManufacture Assets/WorldStreamer/Scritps/Editor/LocalAreaUpdaterEditor.cs
+  uploadId: 752863
