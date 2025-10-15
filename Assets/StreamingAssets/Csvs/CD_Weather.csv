@@ -1,0 +1,4 @@
+﻿id,name,nameKey,icon,cloud_group_id,wind_id,fogId,weatherType,time_of_day,effect_id
+clear_day,낮(맑음),clear_day,clear_day,none,none,fogNone,ClearDay,day,none
+cloudy_dawn,새벽(구름),cloudy_dawn,cloudy_dawn,none,none,fogLight01,CloudyDay,dawn,none
+rainy_night,밤(비),rainy_night,rainy_night,none,none,fogMedium01,RainyDay,night,none

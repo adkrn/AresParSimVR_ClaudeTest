@@ -1,0 +1,37 @@
+﻿// BlitBaseToScreenFeature.cs
+
+using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
+
+public class BlitBaseToScreenFeature : ScriptableRendererFeature
+{
+    class Pass : ScriptableRenderPass
+    {
+        RenderTargetIdentifier _src;
+        Material _mat;
+
+        public Pass(RenderTargetIdentifier src, Material mat)
+        {
+            _src = src;
+            _mat = mat;
+        }
+
+        public override void Execute(ScriptableRenderContext ctx, ref RenderingData data)
+        {
+            CommandBuffer cmd = CommandBufferPool.Get("BlitToScreen");
+            cmd.Blit(_src, BuiltinRenderTextureType.CameraTarget, _mat);
+            ctx.ExecuteCommandBuffer(cmd);
+            CommandBufferPool.Release(cmd);
+        }
+    }
+
+    public Material blitMaterial;
+    Pass _pass;
+    public override void Create() { /* 빈 */ }
+    public override void AddRenderPasses(ScriptableRenderer r, ref RenderingData data)
+    {
+        if (_pass == null) _pass = new Pass(r.cameraColorTargetHandle, blitMaterial);
+        r.EnqueuePass(_pass);
+    }
+}

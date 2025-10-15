@@ -1,0 +1,594 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using Oculus.Interaction;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.Serialization;
+using UnityEngine.UI;
+using UnityEngine.XR;
+using UnityEngine.XR.Interaction.Toolkit;
+
+public enum PlaneStatus
+{
+    JustFlying, // 비행기 밖에 있을 때
+    DoorOpen, // 리어 도어 열기
+    DoorOpenFinish, // 리어 도어 열기 완료: 완료되지 않으면 다음 상태 이동 불가
+    ReadyToJump, // 점프 준비
+    Jump, // 점프(자유낙하)
+    Deploy, // 낙하산 펼치기
+    Parachute, // 낙하산 펼침 완료
+    OnGround, // 착지 완료
+    Finish // 씬 끝, 시작화면으로 재시작
+}
+
+public class PlaneMove : MonoBehaviour
+{
+    [SerializeField] private Transform sceneRoot;
+
+    // 충돌 감지 컴포넌트
+    private FallCharacter fallCharacter;
+
+    [SerializeField] private float speedForHour = 200000.0f;
+    [SerializeField] private float speedForSec;
+    public float turnSpeed = 120f;
+    [SerializeField] private float jumpHeight = 3000.0f;
+    [SerializeField] private float rotSpeed = 720.0f;
+
+    // 이전 프레임의 A 버튼 상태를 저장
+    private bool previousAButtonState = false;
+
+    [SerializeField] private Transform door01;
+    [SerializeField] private Transform door02;
+
+    [SerializeField] private float doorOpen01_Angle = -22.0f;
+    [SerializeField] private float doorOpen02_Angle = -24.0f;
+
+    [SerializeField] private PlaneStatus planeStatus = PlaneStatus.JustFlying;
+
+    private float doorOpenTime = 10.0f;
+    private float _doorEachOpenTime;
+    private float _doorOpenInterval = 2.0f;
+    private float _doorOpenSpendTime = 0.0f;
+    private float _lerpTime01 = 0;
+    private float _lerpTime02 = 0;
+    private Transform _thisT;
+    private Vector3 _doorOpen01Vector;
+    private Vector3 _doorOpen02Vector;
+
+    [SerializeField] private Transform[] camPositions;
+    [SerializeField] private Transform fallCharacterT;
+
+    [SerializeField] private int camPosIndex;
+    [SerializeField] private Transform jumperSet;
+
+    [SerializeField] private Vector3 mainCamPosition;
+    [SerializeField] private Vector3 mainCamRotation;
+    [SerializeField] private float camPosNoise;
+    public Transform[] propellers;
+
+    [SerializeField] private AudioSource audioDoorOpen;
+    [SerializeField] private AudioClip[] audioClips;
+
+    [SerializeField] private GameObject botCloud;
+    [SerializeField] private GameObject stopCloud;
+
+    [SerializeField] private Animator anim;
+
+    private AudioSource _jumperSetAudio;
+    [SerializeField] private float fadeDuration = 1.0f;
+    [SerializeField] private ControllerButtonHint controllerButtonHint;
+
+    // 업데이트에서 실행하는 이벤트 메서드 (실행하는 메서드 담는 역할)
+    private Action _updateAction = null;
+    
+    private bool isSceneLoding;
+
+    public Image fadeImage;
+
+    [SerializeField] private GameObject jumperParachute;
+    [SerializeField] private PokeButton pokeButton;
+    
+    [SerializeField] private Transform oldC130;
+    [SerializeField] private Transform newC130;
+    [SerializeField] private GameObject clouds;
+    private Animator _jumperParachuteAnim;
+    public float parachuteMaxSpeed = 5f; // 낙하산 전개 후 최대 속도
+    [Header("현재 낙하속도")]
+    [SerializeField] private float currentSpeed = 0f; // 현재 속도 (m/s)
+    [Header("자유낙하항력계수: 기본 0.005")]
+    [SerializeField] private float dragCoefficient = 0.005f;
+    [Header("낙하산 전개 시 사용할 항력 계수 (크게 설정): 기본 1.0")]
+    [SerializeField] float parachuteDragCoefficient = 1.0f;
+    
+    [ShowConst("중력 및 항력 설정")]
+    private const float Gravity = 9.80665f; // 중력 가속도
+    [ShowConst("속도 제한: 자유낙학 기본 60m/s(200), 85m/s(300), 낙하산 전개 5m/s", label: "자유낙하 시 사용할 항력 계수 (0.5 * rho * Cd * A / m)")]
+    private const float fallingMaxSpeed = 85f; // 자유낙하 초당 최대 속도(200km/h -> 약60, 300km/h -> 약85)
+    [ShowConst("공기밀도: 기본 1.225kg/m³")] // 자유낙하 시 사용할 항력 계수 (0.5 * rho * Cd * A / m)
+    private const float rho = 1.225f; // 공기 밀도 (kg/m³)
+    [ShowConst("인체항력계수: 기본 1.2")] 
+    private const float Cd = 1.2f; // 인체 항력 계수
+    [ShowConst("투영면적: 기본 0.7m²")] 
+    private const float A = 0.7f; // 투영 면적 (m²)
+    [ShowConst("장비착용무게: 기본 100kg")] 
+    private const float m = 100f; // 질량 (kg)
+    
+    
+    void Awake()
+    {
+        _thisT = transform;
+        speedForSec = speedForHour / 3600.0f;
+
+        _jumperSetAudio = jumperSet.GetComponent<AudioSource>();
+    }
+
+    private void Start()
+    {
+        // 낙하산이 펼쳐져 있을 경우 감추어 준다.
+        if (jumperParachute)
+        {
+            jumperParachute.SetActive(false);
+            _jumperParachuteAnim = jumperParachute.GetComponent<Animator>();
+        }
+
+        // 자유낙하 항력계수 계산
+        dragCoefficient = CalculateDragCoefficient(rho: rho, Cd: Cd, area: A, mass: m);
+
+        _thisT.localPosition = new Vector3(0, jumpHeight, -2000);
+        _doorOpen01Vector = new Vector3(doorOpen01_Angle, 0, 0);
+        _doorOpen02Vector = new Vector3(doorOpen02_Angle, 0, 0);
+
+        jumperSet.parent = camPositions[camPosIndex];
+        jumperSet.localPosition = Vector3.zero;
+        jumperSet.localEulerAngles = Vector3.zero;
+
+        _doorEachOpenTime = doorOpenTime - _doorOpenInterval;
+
+        // 충돌 감지기 추가 및 이벤트 연결
+        if (fallCharacterT != null)
+        {
+            // GroundCollisionDetector 컴포넌트가 없다면 추가
+            fallCharacter = fallCharacterT.GetComponent<FallCharacter>();
+            if (fallCharacter == null)
+            {
+                fallCharacter = fallCharacterT.gameObject.AddComponent<FallCharacter>();
+            }
+
+            // 충돌 이벤트 등록
+            fallCharacter.OnGroundCollision += OnGroundCollisionDetected;
+        }
+        
+        oldC130.gameObject.SetActive(false);
+        newC130.gameObject.SetActive(true);
+
+        _updateAction += PositionNoiseAction;
+    }
+    
+    void Update()
+    {
+        // Meta Quest 컨트롤러 A 버튼 감지
+        if (CheckMetaQuestControllerAButton()) NextStatus();
+        
+        // 스페이스바를 눌러도 작동하게 기능 추가
+        if (Input.GetKeyDown(KeyCode.Space)) NextStatus();
+        
+        // 이 부분이 비행기 이동 부분
+        // thisT.localPosition += new Vector3(0, 0, speedForSec * Time.deltaTime);
+
+        foreach (var propeller in propellers)
+        {
+            propeller.localEulerAngles += new Vector3(0, 0, rotSpeed * Time.deltaTime);
+        }
+        
+        // 이벤트 실행 함수가 있을 경우 그 내용을 실행한다.
+        // 주처리 내용: 화면 흔들림, 리어도어 오픈 등을 수행하는 이벤트
+        _updateAction?.Invoke();
+    }
+    
+    private void HandleQuestControllerAButton()
+    {
+        // 각 상태별 A 버튼 처리
+        switch (planeStatus)
+        {
+            case PlaneStatus.JustFlying:
+                break;
+            
+            case PlaneStatus.DoorOpen:
+                Debug.Log("Door Open 실행");
+                // 문 앞 위치일 경우 문만 열기
+                FadeOut(false, () =>
+                {
+                    oldC130.gameObject.SetActive(true);
+                    newC130.gameObject.SetActive(false);
+                    CamPosChange();
+                    audioDoorOpen.Play();
+                    _updateAction += DoorOpenAction;
+                    //controllerButtonHint.SetHintActive(false);
+                    pokeButton.SetMenuActive(false);
+                    FadeIn();
+                });
+                break;
+            
+            case PlaneStatus.DoorOpenFinish:
+                break;
+            
+            case PlaneStatus.ReadyToJump:
+                CamPosChange();
+                pokeButton.SetMenuActive(false);
+                //controllerButtonHint.SetHintActive(true,"Go");
+                DelayPokeMenuActive(3.0f, "Go!", "Go!");
+                break;
+                
+            case PlaneStatus.Jump:
+                CamPosChange();
+                _updateAction -= PositionNoiseAction;
+                _updateAction += JumpPositionNoiseAction;
+                pokeButton.SetMenuActive(false);
+                break;
+                
+            case PlaneStatus.Deploy:
+                _updateAction -= JumpPositionNoiseAction;
+                _updateAction += ParachutePositionNoiseAction;
+                DeployParachute();
+                break;
+            
+            case PlaneStatus.Parachute:
+                break;
+            
+            case PlaneStatus.OnGround:
+                break;
+            
+            case PlaneStatus.Finish:
+                _jumperSetAudio.clip = audioClips[2];
+                _jumperSetAudio.loop = false;
+                _jumperSetAudio.Play();
+                if (isSceneLoding == false) FadeOut(true);
+                // 이런 상태에서는 버튼 입력 무시
+                break;
+        }
+    }
+
+    /// <summary>
+    /// 자유낙하시 항력계수 계산 메서드
+    /// </summary>
+    /// <param name="rho">공기밀도</param>
+    /// <param name="Cd">인체항력계수</param>
+    /// <param name="area">투영면적</param>
+    /// <param name="mass">몸무게</param>
+    /// <returns></returns>
+    public float CalculateDragCoefficient(float rho, float Cd, float area, float mass)
+    {
+        return 0.5f * rho * Cd * area / mass;
+    }
+
+    public void NextStatus()
+    {
+        if (planeStatus is 
+            PlaneStatus.DoorOpen or 
+            PlaneStatus.Deploy or 
+            PlaneStatus.Parachute )
+        {
+            return;
+        }
+        
+        planeStatus++;
+        HandleQuestControllerAButton();
+    }
+
+    private void CamPosChange()
+    {
+        Debug.Log("Cam Pos Change 실행");
+
+        if ((camPosIndex + 1) == camPositions.Length)
+        {
+            Debug.Log("camPositions.Length:: " + camPositions.Length);
+            camPosIndex = 0;
+        }
+        else
+        {
+            Debug.Log("camPosIndex 1증가");
+            camPosIndex++;
+            if (stopCloud.activeSelf == false) stopCloud.SetActive(true);
+            if (botCloud.activeSelf == false) botCloud.SetActive(true);
+        }
+
+        if (camPositions[camPosIndex] == fallCharacterT)
+        {
+            StartFreeFall();
+            return;
+        }
+
+        if (camPosIndex >= camPositions.Length) camPosIndex = 0;
+
+        jumperSet.parent = camPositions[camPosIndex];
+        jumperSet.localPosition = Vector3.zero;
+        jumperSet.localEulerAngles = Vector3.zero;
+    }
+
+    private void StartFreeFall()
+    {
+        jumperSet.parent = fallCharacterT;
+        fallCharacterT.parent = sceneRoot;
+        fallCharacterT.position = new Vector3(73, fallCharacterT.position.y, 545);
+        planeStatus = PlaneStatus.Jump;
+        stopCloud.transform.parent = sceneRoot;
+        mainCamRotation = jumperSet.localEulerAngles;
+
+        _jumperSetAudio.clip = audioClips[0];
+        _jumperSetAudio.Play();
+        //controllerButtonHint.SetHintActive(true, "Expand the parachute");
+        StartCoroutine(NextSound(_jumperSetAudio, 1, true));
+    }
+
+    /// <summary>
+    /// 낙하산 펼치기 기능 처리
+    /// </summary>
+    private void DeployParachute()
+    {
+        Debug.Log("DeployParachute 시작");
+        mainCamRotation = jumperSet.localEulerAngles;
+
+        _jumperSetAudio.clip = audioClips[2];
+        _jumperSetAudio.loop = false;
+        _jumperSetAudio.Play();
+
+        anim.Play("ParaOpen", -1, 0f); // layer 0, 첫 프레임
+        Debug.Log("ParaOpen");
+        pokeButton.SetMenuActive(false);
+
+        // ---------- 낙하산 오브젝트 보이게 하고 펼치기 애니메이션 처리 ---------- //
+        planeStatus = PlaneStatus.Parachute; // <-상태변경
+        // 낙하산을 펼치면 감추어져 있던 낙하산을 보이게 처리하고
+        // 펼침 애니메이션을 실행한다.
+        if(jumperParachute)jumperParachute.SetActive(true);
+        if(_jumperParachuteAnim) _jumperParachuteAnim.SetTrigger("deploy");
+
+        // 
+        AnimSequenceCheck.StartTrigger(_jumperParachuteAnim, "deploy", EndDeployParachute);
+        
+        // ---------- 낙하산 오브젝트 보이게 하고 펼치기 애니메이션 처리 ---------- //
+
+        StartCoroutine(NextSound(_jumperSetAudio, 3, true));
+    }
+    
+    private void EndDeployParachute()
+    {
+        planeStatus = PlaneStatus.Parachute;
+        jumperSet.GetComponent<JumperSet>().ShowHideSet(1, true);
+    }
+    
+    
+
+    
+    /// <summary>
+    /// 도어 열기 기능
+    /// </summary>
+    private void DoorOpenAction()
+    {
+        _doorOpenSpendTime += Time.deltaTime;
+        _lerpTime01 = _doorOpenSpendTime / _doorEachOpenTime;
+        _lerpTime02 = (_doorOpenSpendTime - _doorOpenInterval) / _doorEachOpenTime;
+        door01.localEulerAngles = Vector3.Lerp(Vector3.zero, _doorOpen01Vector, _lerpTime01);
+        door02.localEulerAngles = Vector3.Lerp(Vector3.zero, _doorOpen02Vector, _lerpTime02);
+        if (_lerpTime02 >= 1.0f)
+        {
+            door01.localEulerAngles = _doorOpen01Vector;
+            door02.localEulerAngles = _doorOpen02Vector;
+            _lerpTime01 = 0.0f;
+            _lerpTime02 = 0.0f;
+            planeStatus = PlaneStatus.DoorOpenFinish;
+            //controllerButtonHint.SetHintActive(true, "Go to the fall location");
+            pokeButton.SetMenuActive(true, "Go to the fall location.", "OK");
+            _updateAction -= DoorOpenAction;
+        }
+    }
+    
+    private void PositionNoiseAction()
+    {
+        if ((int)planeStatus > 3) return;
+        camPosNoise = Mathf.PerlinNoise(-1, Time.time * 7.0f);
+        jumperSet.localPosition = mainCamPosition + new Vector3(0, camPosNoise / 8.0f, 0);
+    }
+    
+    bool isDeploy = false;
+
+    private void JumpPositionNoiseAction()
+    {
+        fallCharacterT.position += new Vector3(0, -GetFreeFallDistance(), 0);
+        camPosNoise = Mathf.PerlinNoise(-1, Time.time * 10.0f);
+        jumperSet.localPosition = mainCamPosition + new Vector3(camPosNoise, camPosNoise, camPosNoise);
+        jumperSet.localEulerAngles = new Vector3(camPosNoise * 1.3f, camPosNoise * 0.3f, camPosNoise * 0.6f);
+        
+        if (fallCharacterT.position.y <= 200 && isDeploy == false)
+        {
+            isDeploy = true;
+            pokeButton.SetMenuActive(true, "Expand the parachute.", "OK");
+        }
+    }
+    
+    private void ParachutePositionNoiseAction()
+    {
+        fallCharacterT.position += new Vector3(0, -GetParachuteFallDistance(), 0);
+        camPosNoise = Mathf.PerlinNoise(-1, Time.time / 2.0f);
+        jumperSet.localPosition = mainCamPosition + new Vector3(camPosNoise, camPosNoise, camPosNoise);
+        jumperSet.localEulerAngles = new Vector3(camPosNoise * 1, camPosNoise * 2, camPosNoise * 1);
+    }
+
+    /// <summary>
+    /// GroundCollisionDetector에서 전달된 충돌 이벤트 처리
+    /// </summary>
+    private void OnGroundCollisionDetected()
+    {
+        // 점프나 파라슈트 상태일 때만 처리
+        if (planeStatus == PlaneStatus.Jump || planeStatus == PlaneStatus.Parachute || planeStatus == PlaneStatus.Deploy)
+        {
+            planeStatus = PlaneStatus.OnGround;
+            
+            // 높이를 정확하게 땅 높이로 설정
+            Vector3 position = fallCharacterT.position;
+            fallCharacterT.position = position;
+            _updateAction -= ParachutePositionNoiseAction;
+
+            anim.Play("Landing");
+            //controllerButtonHint.SetHintActive(true, "Restart");
+            pokeButton.SetMenuActive(true, "Press the button to restart.", "Restart");
+            Debug.Log("땅에 도착했습니다.");
+        }
+    }
+
+    /// <summary>
+    /// Meta Quest 컨트롤러 A 버튼 처리 기능
+    /// </summary>
+    
+
+    IEnumerator NextSound(AudioSource aSource, int clipIndex, bool isLoop = false)
+    {
+        var clipLength = aSource.clip.length;
+        yield return new WaitForSeconds(clipLength);
+
+        aSource.clip = audioClips[clipIndex];
+        aSource.loop = isLoop;
+        aSource.Play();
+    }
+
+    /// <summary>
+    /// 항력 가속도(drag)를 고려한 자유낙하 동안의 이동거리 (m)
+    /// </summary>
+    private float GetFreeFallDistance()
+    {
+        // 항력으로 인한 감속 가속도: a_drag = dragCoefficient * v^2
+        float dragAcc = dragCoefficient * currentSpeed * currentSpeed;
+        // 순가속도 = 중력 - 항력
+        float acceleration = Gravity - dragAcc;
+        // 속도 업데이트
+        currentSpeed += acceleration * Time.deltaTime;
+        // 최대 속도 제한
+        currentSpeed = Mathf.Clamp(currentSpeed, 0f, fallingMaxSpeed);
+        // 델타타임 동안 이동한 거리 반환
+        return currentSpeed * Time.deltaTime;
+    }
+
+    /// <summary>
+    /// 낙하산 전개 시(높은 항력) 이동거리 계산 (m)
+    /// </summary>
+    private float GetParachuteFallDistance()
+    {
+        // 낙하산 전개 시 더 큰 항력 계수 적용
+        float dragAcc = parachuteDragCoefficient * currentSpeed * currentSpeed;
+        float acceleration = Gravity - dragAcc;
+        currentSpeed += acceleration * Time.deltaTime;
+        // 낙하산 전개 후에는 훨씬 낮은 최대 속도로 제한
+        currentSpeed = Mathf.Clamp(currentSpeed, 0f, parachuteMaxSpeed);
+        return currentSpeed * Time.deltaTime;
+    }
+    // ------ Jump ------ //
+    // 필요한 정보:
+    // 점프 시작시 비행기 속도와 방향 // -- --
+    // 비행기 속도 영향 0까지 감소 시간 // --
+    // 낙하산 펴기전 낙하속도 // --
+    // 낙하산 펼친 후 낙하속도    
+    // 좌우 회전시 회전 속도
+    // 좌우 회전시 회전 반경
+    // 풍향
+    // 풍속
+
+
+    /// <summary>
+    /// Meta Quest 컨트롤러 A 버튼 누름 감지 (눌린 순간만 감지)
+    /// </summary>
+    /// <returns>A 버튼이 새롭게 눌렸으면 true, 아니면 false</returns>
+    private bool CheckMetaQuestControllerAButton()
+    {
+        List<InputDevice> rightHandedControllers = new List<InputDevice>();
+        InputDevices.GetDevicesWithCharacteristics(
+            InputDeviceCharacteristics.Controller | InputDeviceCharacteristics.Right, rightHandedControllers);
+
+        bool currentButtonState = false;
+
+        foreach (var device in rightHandedControllers)
+        {
+            if (device.TryGetFeatureValue(CommonUsages.primaryButton, out var btnPressed) && btnPressed)
+            {
+                currentButtonState = true;
+                break;
+            }
+        }
+
+        // 버튼이 이전에 눌려있지 않았고, 현재 눌렸을 때만 true 반환 (rising edge 감지)
+        bool buttonJustPressed = !previousAButtonState && currentButtonState;
+
+        // 현재 상태를 다음 프레임을 위해 저장
+        previousAButtonState = currentButtonState;
+
+        return buttonJustPressed;
+    }
+    
+    public void FadeIn(Action onComplete = null)
+    {
+        fadeImage.gameObject.SetActive(true);
+        isSceneLoding = false;
+
+        StartCoroutine(FadeTo(FadeDirection.In, false, onComplete));
+    }
+
+    enum FadeDirection
+    {
+        In,
+        Out
+    }
+
+    public void FadeOut(bool isScene = false, Action onComplete = null)
+    {
+        fadeImage.gameObject.SetActive(true);
+        isSceneLoding = isScene;
+        StartCoroutine(FadeTo(FadeDirection.Out, isScene, onComplete));
+    }
+
+    private IEnumerator FadeTo(FadeDirection fadeDirection, bool isScene = false, Action onComplete = null)
+    {
+        // 초기화 값은 Fade Out 으로 설정
+        float startAlpha =1f; 
+        float targetAlpha = 0f;
+        if (fadeDirection == FadeDirection.In)
+        {
+            startAlpha = 0f;
+            targetAlpha = 1f;
+        }
+        float time = 0f;
+
+        while (time <= fadeDuration)
+        {
+            time += Time.deltaTime;
+            float blend = Mathf.Clamp01(time / fadeDuration);
+            float alpha = Mathf.Lerp(startAlpha, targetAlpha, blend);
+            fadeImage.color = new Color(0, 0, 0, alpha);
+            yield return null;
+        }
+
+        if (time > fadeDuration)
+        {
+            // 씬 로딩 후 0.1초 대기 후 씬 전환
+            onComplete?.Invoke();
+            fadeImage.gameObject.SetActive(false);
+            if (isScene == false) yield break;
+
+            yield return new WaitForSeconds(0.1f);
+            SceneManager.LoadScene("Hangar_0529_001");
+        }
+    }
+    
+    public void DelayPokeMenuActive(float delayTime, string newMessage = null, string btnText = null)
+    {
+        Debug.Log("[PlaneMove] DelayPokeMenuActive");
+        StartCoroutine(DelayPokeMenuActiveCoroutine(delayTime, newMessage, btnText));
+    }
+    
+    IEnumerator DelayPokeMenuActiveCoroutine(float delayTime, string newMessage = null, string btnText = null)
+    {
+        Debug.Log("[PlaneMove] DelayPokeMenuActiveCoroutineStart");
+        yield return new WaitForSeconds(delayTime);
+        pokeButton.SetMenuActive(true, newMessage, btnText);
+        Debug.Log("[PlaneMove] DelayPokeMenuActiveCoroutineEnd");
+    }
+}

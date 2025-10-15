@@ -1,0 +1,25 @@
+﻿jumpType,timelineID,name,nameKey,description,autoProceed
+STANDARD,STD_TL01,Briefing,Briefing,,0
+STANDARD,STD_TL02,GearUp,GearUp,,1
+STANDARD,STD_TL03,Boarding,Boarding,,1
+STANDARD,STD_TL04,StandBy,StandBy,,1
+STANDARD,STD_TL05,ExitJump,Exit Jump,,1
+STANDARD,STD_TL06,FreeFall,Free Fall,,1
+STANDARD,STD_TL07,InAir,In Air,,1
+STANDARD,STD_TL08,JumpComplete,Jump Complete,,0
+HAHO,HAHO_TL01,Briefing,Briefing,,0
+HAHO,HAHO_TL02,GearUp,Gear Up,,1
+HAHO,HAHO_TL03,Boarding,Boarding,,1
+HAHO,HAHO_TL04,StandBy,Stand By,,1
+HAHO,HAHO_TL05,ExitJump,Exit Jump,,1
+HAHO,HAHO_TL06,FreeFall,Free Fall,,1
+HAHO,HAHO_TL07,InAir,In Air,,1
+HAHO,HAHO_TL08,JumpComplete,Jump Complete,,0
+HALO,HALO_TL01,Briefing,Briefing,,0
+HALO,HALO_TL02,GearUp,Gear Up,,1
+HALO,HALO_TL03,Boarding,Boarding,,1
+HALO,HALO_TL04,StandBy,Stand By,,1
+HALO,HALO_TL05,ExitJump,Exit Jump,,1
+HALO,HALO_TL06,FreeFall,Free Fall,,1
+HALO,HALO_TL07,InAir,In Air,,1
+HALO,HALO_TL08,JumpComplete,Jump Complete,,0

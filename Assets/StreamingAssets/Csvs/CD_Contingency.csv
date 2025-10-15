@@ -1,0 +1,31 @@
+﻿id,jumpType,timelineId,procedureId,stepName,stepNameKey,description,leftCtrLine,rightCtrLine,dropSpeed,action,completeCondition,duration,instructionId,evaluationId
+STD_CableBreak,STANDARD,STD_TL06,STD_TL06_PR01,CableBreak,정박줄 절단 및 고장,,ON,ON,0,MainParaOff,SubParaOn,10,STD_INS17,STD_EVAL_EventComplete
+STD_StaticLineBreak,STANDARD,STD_TL06,STD_TL06_PR01,StaticLineBreak,생명줄 절단 및 고리 파손,,ON,ON,0,MainParaOff,SubParaOn,10,STD_INS18,STD_EVAL_EventComplete
+STD_HookDisconnect,STANDARD,STD_TL06,STD_TL06_PR01,HookDisconnect,정박줄에 고리 미결합,,ON,ON,0,MainParaOff,SubParaOn,10,STD_INS19,STD_EVAL_EventComplete
+STD_LineTwist,STANDARD,STD_TL07,STD_TL07_PR01,LineTwist,산줄 꼬임,,OFF,OFF,10,MainParaCut,SubParaOn,10,STD_INS20,STD_EVAL_EventComplete
+STD_CanopyInversion,STANDARD,STD_TL07,STD_TL07_PR01,CanopyInversion,완전뒤집힘,,OFF,OFF,15,MainParaCut,SubParaOn,10,STD_INS21,STD_EVAL_EventComplete
+STD_Streamer,STANDARD,STD_TL07,STD_TL07_PR01,Streamer,유선형,,OFF,OFF,45,MainParaCut,SubParaOn,10,STD_INS22,STD_EVAL_EventComplete
+STD_CanopyBreak,STANDARD,STD_TL07,STD_TL07_PR01,CanopyBreak,Canopy 파손,,ON,ON,5,MainParaCut,SubParaOn,10,STD_INS23,STD_EVAL_EventComplete
+STD_TwoCanopy,STANDARD,STD_TL07,STD_TL07_PR01,TwoCanopy,주/예비 낙하산 동시 개산,,OFF,OFF,20,MainParaCut,SubParaOn,10,STD_INS24,STD_EVAL_EventComplete
+STD_LeftLineFailure,STANDARD,STD_TL07,STD_TL07_PR01,LeftLineFailure,왼쪽 조종줄 고장,,OFF,ON,0,MainParaCut,SubParaOn,10,STD_INS25,STD_EVAL_EventComplete
+STD_RightLineFailure,STANDARD,STD_TL07,STD_TL07_PR01,RightLineFailure,오른쪽 조종줄 고장,,ON,OFF,0,MainParaCut,SubParaOn,10,STD_INS26,STD_EVAL_EventComplete
+STD_BothLineFailure,STANDARD,STD_TL07,STD_TL07_PR01,BothLineFailure,모든 조종줄 고장,,OFF,OFF,0,MainParaCut,SubParaOn,10,STD_INS27,STD_EVAL_EventComplete
+STD_SuspensionLineBreak,STANDARD,STD_TL07,STD_TL07_PR01,SuspensionLineBreak,산줄 파손,,OFF,OFF,5,MainParaCut,SubParaOn,10,STD_INS28,STD_EVAL_EventComplete
+HAHO_LineTwist,HAHO,HAHO_TL07,HAHO_TL07_PR01,LineTwist,산줄 꼬임,,OFF,OFF,10,MainParaCut,SubParaOn,10,HAHO_INS17,HAHO_EVAL_EventComplete
+HAHO_CanopyInversion,HAHO,HAHO_TL07,HAHO_TL07_PR01,CanopyInversion,완전뒤집힘,,OFF,OFF,15,MainParaCut,SubParaOn,10,HAHO_INS18,HAHO_EVAL_EventComplete
+HAHO_Streamer,HAHO,HAHO_TL07,HAHO_TL07_PR01,Streamer,유선형,,OFF,OFF,45,MainParaCut,SubParaOn,10,HAHO_INS19,HAHO_EVAL_EventComplete
+HAHO_CanopyBreak,HAHO,HAHO_TL07,HAHO_TL07_PR01,CanopyBreak,Canopy 파손,,ON,ON,5,MainParaCut,SubParaOn,10,HAHO_INS20,HAHO_EVAL_EventComplete
+HAHO_TwoCanopy,HAHO,HAHO_TL07,HAHO_TL07_PR01,TwoCanopy,주/예비 낙하산 개산,,OFF,OFF,20,MainParaCut,SubParaOn,10,HAHO_INS21,HAHO_EVAL_EventComplete
+HAHO_LeftLineFailure,HAHO,HAHO_TL07,HAHO_TL07_PR01,LeftLineFailure,왼쪽 조종줄 고장,,OFF,ON,0,MainParaCut,SubParaOn,10,HAHO_INS22,HAHO_EVAL_EventComplete
+HAHO_RightLineFailure,HAHO,HAHO_TL07,HAHO_TL07_PR01,RightLineFailure,오른쪽 조종줄 고장,,ON,OFF,0,MainParaCut,SubParaOn,10,HAHO_INS23,HAHO_EVAL_EventComplete
+HAHO_BothLineFailure,HAHO,HAHO_TL07,HAHO_TL07_PR01,BothLineFailure,모든 조종줄 고장,,OFF,OFF,0,MainParaCut,SubParaOn,10,HAHO_INS24,HAHO_EVAL_EventComplete
+HAHO_SuspensionLineBreak,HAHO,HAHO_TL07,HAHO_TL07_PR01,SuspensionLineBreak,산줄 파손,,OFF,OFF,5,MainParaCut,SubParaOn,10,HAHO_INS25,HAHO_EVAL_EventComplete
+HALO_LineTwist,HALO,HALO_TL07,HALO_TL07_PR01,LineTwist,산줄 꼬임,,OFF,OFF,10,MainParaCut,SubParaOn,10,HALO_INS17,HALO_EVAL_EventComplete
+HALO_CanopyInversion,HALO,HALO_TL07,HALO_TL07_PR01,CanopyInversion,완전뒤집힘,,OFF,OFF,15,MainParaCut,SubParaOn,10,HALO_INS18,HALO_EVAL_EventComplete
+HALO_Streamer,HALO,HALO_TL07,HALO_TL07_PR01,Streamer,유선형,,OFF,OFF,45,MainParaCut,SubParaOn,10,HALO_INS19,HALO_EVAL_EventComplete
+HALO_CanopyBreak,HALO,HALO_TL07,HALO_TL07_PR01,CanopyBreak,Canopy 파손,,ON,ON,5,MainParaCut,SubParaOn,10,HALO_INS20,HALO_EVAL_EventComplete
+HALO_TwoCanopy,HALO,HALO_TL07,HALO_TL07_PR01,TwoCanopy,주/예비 낙하산 개산,,OFF,OFF,20,MainParaCut,SubParaOn,10,HALO_INS21,HALO_EVAL_EventComplete
+HALO_LeftLineFailure,HALO,HALO_TL07,HALO_TL07_PR01,LeftLineFailure,왼쪽 조종줄 고장,,OFF,ON,0,MainParaCut,SubParaOn,10,HALO_INS22,HALO_EVAL_EventComplete
+HALO_RightLineFailure,HALO,HALO_TL07,HALO_TL07_PR01,RightLineFailure,오른쪽 조종줄 고장,,ON,OFF,0,MainParaCut,SubParaOn,10,HALO_INS23,HALO_EVAL_EventComplete
+HALO_BothLineFailure,HALO,HALO_TL07,HALO_TL07_PR01,BothLineFailure,모든 조종줄 고장,,OFF,OFF,0,MainParaCut,SubParaOn,10,HALO_INS24,HALO_EVAL_EventComplete
+HALO_SuspensionLineBreak,HALO,HALO_TL07,HALO_TL07_PR01,SuspensionLineBreak,산줄 파손,,OFF,OFF,5,MainParaCut,SubParaOn,10,HALO_INS25,HALO_EVAL_EventComplete

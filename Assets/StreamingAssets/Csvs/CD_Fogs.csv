@@ -1,0 +1,5 @@
+﻿id,name,name_key,type,density,startDistanceM,endDistanceM,verticalGradient
+fogNone,안개없음,fogNone,Barely,0,1000,2000,0
+fogLight01,옅은안개,fogLight,Light,0.2,200,800,0.3
+fogMedium01,안개,fogMedium,Medium,0.5,100,400,0.5
+fogHeavy01,진한안개,fogHeavy,Heavy,0.8,50,200,0.8

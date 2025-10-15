@@ -1,0 +1,70 @@
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
+
+public class PageDotIndicator : MonoBehaviour
+{
+    [Header("필수 참조")]
+    [SerializeField] private PageUIDisplay uiDisplay;      // 대상 PageUIDisplay
+    [SerializeField] private Image dotPrefab;      // 비활성 상태로 둔 Image 프리팹
+    private RectTransform _container;      // 도트들을 담을 부모 
+    
+
+    [Header("스프라이트")]
+    [SerializeField] Sprite offSprite;             // 미선택(dot_off)
+    [SerializeField] Sprite onSprite;              // 선택(dot_on)
+
+    private List<Image> _dots = new();
+
+    void Awake()
+    {
+        // 필수 참조 설정
+        if (uiDisplay == null)
+            uiDisplay = GetComponentInParent<PageUIDisplay>();
+        if(_container == null)
+            _container = GetComponent<RectTransform>();
+
+        uiDisplay.onPageChanged += HandlePageChanged;
+    }
+
+    void OnDestroy()
+    {
+        if (uiDisplay != null)
+            uiDisplay.onPageChanged -= HandlePageChanged;
+    }
+
+    /* ────────────────────────────────────────── */
+
+    public void Rebuild(int total)
+    {
+        // 기존 도트 제거
+        foreach (Transform child in _container)
+            Destroy(child.gameObject);
+        _dots.Clear();
+
+        // 새 도트 생성
+        for (int i = 0; i < total; i++)
+        {
+            var img = Instantiate(dotPrefab, _container);
+            img.sprite = offSprite;
+            img.gameObject.SetActive(true);
+            _dots.Add(img);
+        }
+
+        UpdateSprites(uiDisplay.CurrentPage);
+    }
+
+    void HandlePageChanged(int current, int total)
+    {
+        if (_dots.Count != total)          // 페이지 수가 변했으면 재구성
+            Rebuild(total);
+
+        UpdateSprites(current);
+    }
+
+    void UpdateSprites(int current)
+    {
+        for (int i = 0; i < _dots.Count; i++)
+            _dots[i].sprite = (i == current) ? onSprite : offSprite;
+    }
+}

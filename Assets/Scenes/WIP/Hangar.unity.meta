@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 890b86119abdb334294e82a84397a91c
+timeCreated: 1537559077
+licenseType: Store
+DefaultImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 129428
+  packageName: Hangar
+  packageVersion: 5.3.4f1
+  assetPath: Assets/Hangar/Hangar.unity
+  uploadId: 269266
