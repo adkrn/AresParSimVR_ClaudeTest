@@ -33,6 +33,8 @@ public class StateManager_New : MonoBehaviour
     private Coroutine _timeRoutine;
     private bool _isSuccess = false;
 
+    public bool isJump = false;
+
     private void Awake()
     {
         if (Inst == null)
@@ -91,7 +93,7 @@ public class StateManager_New : MonoBehaviour
             }
             case TrainingState.Pause:
             {
-                if (_trainingState != TrainingState.Start) return;
+                if (_trainingState != TrainingState.Start && _trainingState != TrainingState.Resume) return;
                 
                 _wsDBClient.CurParticipantData.trainingState = TrainingState.Pause;
                 UIManager.Inst.ShowPauseUI();
@@ -107,8 +109,11 @@ public class StateManager_New : MonoBehaviour
             }
             case TrainingState.End:
             {
-                Debug.Log("훈련 종료");
-
+                if (_trainingState != TrainingState.Start)
+                {
+                    Debug.LogWarning("훈련 종료 처리 정보 : 현재 훈련중인 상태가 아니므로 종료 상태로 바꾸지 않습니다.");
+                    return;
+                }
                 _wsDBClient.CurParticipantData.trainingState = TrainingState.End;
                 AresHardwareService.Inst.SetEvent(AresEvent.None);
                 ResetAllStates();
@@ -116,7 +121,7 @@ public class StateManager_New : MonoBehaviour
                 break;
             }
         }
-
+        
         _trainingState = state;
         _wsDBClient.SendTraningStateResponse(false, _wsDBClient.CurParticipantData);
     }
@@ -291,6 +296,9 @@ public class StateManager_New : MonoBehaviour
             StopCoroutine(_timeRoutine);
             _timeRoutine = null;
         }
+        
+        // TimeLimitUI 이벤트 정리
+        UIManager.Inst.CleanTimeUIEvent();
     }
     
     public void ProcessProcedureRequest(string procedureId)
@@ -400,8 +408,6 @@ public class StateManager_New : MonoBehaviour
         // 목표가 TakeOff 이상이면 Main 씬 필요
         return targetIndex > _takeOffProcedureIndex;
     }
-
-
 
 
     /// <summary>
@@ -561,7 +567,6 @@ public class StateManager_New : MonoBehaviour
                     UIManager.Inst.AddAfterAction(() =>
                     {
                         UIManager.Inst.ShowResultUI();
-                        SaveResultData();
                     });
                 };
                 break;
@@ -580,6 +585,21 @@ public class StateManager_New : MonoBehaviour
             if (_cameraController == null) _cameraController = FindAnyObjectByType<CameraController>();
 
             _cameraController.MoveJumpArea();
+
+            // 문 앞 줄 세우기 - 더미 모델 뒤에 배치
+            var participantManager = ParticipantManager.Inst;
+            if (participantManager != null)
+            {
+                Transform doorExitPoint = _cameraController.GetExitPoint();
+                if (doorExitPoint != null)
+                {
+                    participantManager.LineupAtDoor(doorExitPoint, 1.0f); // 1m 간격
+                }
+                else
+                {
+                    Debug.LogWarning("[StateManager] 문(Exit) 위치를 찾을 수 없어 줄 세우기를 실행하지 못했습니다.");
+                }
+            }
         }
 
         var duration = float.TryParse(_currentProcedure.duration, out var v) ? v : 0f;
@@ -992,11 +1012,17 @@ public class StateManager_New : MonoBehaviour
     private void PointProcedureComplete(int routeIndex)
     {
         var route = DataManager.Inst.routes[routeIndex];
-        var targetRoute = CalculateTargetRouteForProcedure(_currentProcedure.stepName);
-
+        if (_currentProcedure.skipAircraftPosition == "NONE")
+        {
+            Debug.LogWarning($"{_currentProcedure.stepName}은 목표 포인트가 없습니다.");
+            return;
+        }
+        
+        int scenarioRouteIndex = DataManager.Inst.GetScenarioRouteIndex();
+        var targetRoute = scenarioRouteIndex + int.Parse(_currentProcedure.skipAircraftPosition)+1;
         if (routeIndex > targetRoute)
         {
-            Debug.LogError("[StateManager] 오류 : 이미 목표 포인트를 지나침");
+            Debug.LogWarning($"[StateManager] 이미 목표 포인트{targetRoute}를 지나침");
             return;
         }
 
@@ -1012,11 +1038,11 @@ public class StateManager_New : MonoBehaviour
             }
         }
 
-        if (!route.isCompletePoint)
-        {
-            Debug.LogError($"[StateManager]  {routeIndex}번은 완료 조건에 해당하는 목표 포인트가 아님");
-            return;
-        }
+        // if (!route.isCompletePoint)
+        // {
+        //     Debug.LogError($"[StateManager]  {routeIndex}번은 완료 조건에 해당하는 목표 포인트가 아님");
+        //     return;
+        // }
         
         Debug.Log($"[StateManager]{routeIndex}번 포인트 도착 {_currentProcedure.stepName} 절차 완료");
         if (_isSkipPending == false)
@@ -1035,43 +1061,31 @@ public class StateManager_New : MonoBehaviour
     {
         Debug.Log("[StateManager] 비행기 위치 동기화 시작");
         var targetProcedure = DataManager.Inst.GetProcedure(targetProcedureId);
-        if (targetProcedure == null) return;
+        if (targetProcedure == null)
+        {
+            Debug.LogError("[StateManager] 목표 절차가 null 입니다.");
+            return;
+        }
 
         if (_airPlane == null)
+        {
+            Debug.LogWarning("[StateManager] airPlane이 null입니다.");
             _airPlane = FindAnyObjectByType<AirPlane>();
+        }
 
         if (_airPlane != null)
         {
-            int targetRouteIndex = CalculateTargetRouteForProcedure(targetProcedure.stepName);
-            if (targetRouteIndex >= 0)
+            if (targetProcedure.skipAircraftPosition == "NONE")
             {
-                Debug.Log($"[StateManager] 비행기를 {targetProcedure.stepName} 절차 목표지점 {targetRouteIndex}로 즉시 이동");
-                _airPlane.MoveToPointImmediately(targetRouteIndex);
+                Debug.LogWarning($"{targetProcedure.stepName}은 스킵 포인트가 없습니다.");
+                return;
             }
+            int scenarioRouteIndex = DataManager.Inst.GetScenarioRouteIndex();
+            var targetIndex = scenarioRouteIndex + Int32.Parse(targetProcedure.skipAircraftPosition);
+            Debug.Log($"[StateManager] 비행기를 {targetProcedure.stepName} 절차 목표지점 {targetIndex}로 즉시 이동");
+            _airPlane.MoveToPointImmediately(targetIndex);
+            //AirPlaneDeparture();
         }
-    }
-
-    /// <summary>
-    /// 절차별 목표 루트 계산
-    /// </summary>
-    private int CalculateTargetRouteForProcedure(string stepName)
-    {
-        int scenarioRouteIndex = DataManager.Inst.GetScenarioRouteIndex();
-        
-        // Route 오프셋 딕셔너리
-        var routeOffsets = new Dictionary<string, int>
-        {
-            { "TakeOff", -2 },
-            { "ThreeMinutes", -1 },
-            { "OneMinutes", 0 }
-        };
-        
-        if (routeOffsets.TryGetValue(stepName, out int offset))
-        {
-            return scenarioRouteIndex + offset;
-        }
-        
-        return -1;
     }
     
     /// <summary>
@@ -1113,9 +1127,9 @@ public class StateManager_New : MonoBehaviour
                     break;
                     
                 case CompleteCondition.Point:
-                    // 비행기 위치는 별도 처리
-                    SyncAirplaneForSkip(procedure.id);
                     Debug.Log($"<color=cyan>[StateManager] Point 절차 스킵: {procedure.stepName}");
+                    _airPlane.DoorOpenSkip();
+                    Debug.Log("<color=cyan>[StateManager] 문 여는 애니메이션 스킵");
                     break;
                 case CompleteCondition.SceneLoading:
                     break;
@@ -1124,6 +1138,10 @@ public class StateManager_New : MonoBehaviour
                     Debug.Log($"<color=cyan>[StateManager] 일반 절차 스킵: {procedure.stepName}");
                     break;
             }
+            
+            // 비행기 위치는 별도 처리
+            SyncAirplaneForSkip(procedure.id);
+            if(_airPlane != null) AirPlaneDeparture();
             
             // 평가 결과 저장 (스킵됨)
             UIManager.Inst.AddResult(procedure.evaluationId, "스킵");

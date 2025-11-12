@@ -110,7 +110,7 @@ Material:
     - _CameraFadeParams: {r: 0, g: Infinity, b: 0, a: 0}
     - _CloudSpeed: {r: 0.01, g: 0.01, b: 0, a: 0}
     - _CloudsColor: {r: 1, g: 1, b: 1, a: 0.07450981}
-    - _Color: {r: 0.21344838, g: 0.25685504, b: 0.3074961, a: 0.01}
+    - _Color: {r: 0.2123704, g: 0.2557771, b: 0.30641812, a: 1}
     - _ColorAddSubDiff: {r: 1, g: 0, b: 0, a: 0}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _ShadingColor: {r: 0.8676499, g: 0.93428266, b: 1, a: 1}

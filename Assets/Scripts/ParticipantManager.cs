@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -22,7 +23,7 @@ public class ParticipantManager : MonoBehaviour
     private WS_DB_Client wsClient;
     
     // 데이터 전송 관련
-    private float posDataInterval = 0.05f; // 0.05초마다 데이터 전송
+    private float posDataInterval = 0.01f; // 0.05초마다 데이터 전송
     private float lastSendTime = 0f;
     private bool isTrainingActive = false;
     
@@ -44,6 +45,8 @@ public class ParticipantManager : MonoBehaviour
     
     // 플레이어 관절 리스트
     public List<Transform> jointList;
+
+    [SerializeField] private Transform vrCamera;
     
     // 관절 데이터 매퍼
     [Header("Joint Data System")]
@@ -60,7 +63,7 @@ public class ParticipantManager : MonoBehaviour
 
     [Header("디버그 모드")]
     [SerializeField] private bool isDebugMode = false;
-    
+
     // 이벤트
     public event Action<string, MonitoringData> OnParticipantDataUpdated;
     public event Action<string> OnParticipantJoined;
@@ -88,11 +91,19 @@ public class ParticipantManager : MonoBehaviour
     {
         // 참가자 정보 초기화
         InitializeParticipantInfo();
-        
+
         // 플레이어 찾기
         SetThisParticipant();
-        
+
         StartMonitoring();
+
+        if (vrCamera == null)
+        {
+            var cameraObj = GameObject.Find("CenterEyeAnchor");
+            if (cameraObj == null) return;
+            vrCamera = cameraObj.transform;
+            Debug.Log("[ParticipantManager] VR 카메라 발견: CenterEyeAnchor");
+        }
     }
 
     private void Update()
@@ -307,23 +318,61 @@ public class ParticipantManager : MonoBehaviour
     private void UpdateMonitoringDataInternal()
     {
         if (player == null) return;
-        
+
         // 기본 정보 설정
         currentMonitoringData.participantId = participantId;
         currentMonitoringData.simNo = simNo;
-        
-        // 위치 및 회전 정보
-        Vector3 currentPosition = player.position;
-        Quaternion currentRotation = player.rotation;
-        
+
+        // 점프 여부 확인
+        var isJump = StateManager_New.Inst.isJump;
+
+        // 위치 정보 - 점프 여부에 따라 로컬/절대 좌표 선택
+        Vector3 currentPosition;
+        if (isJump || SceneManager.sceneCount == 0)
+        {
+            // 점프 후: 절대 좌표 (world position)
+            currentPosition = player.position;
+        }
+        else
+        {
+            // 점프 전: 로컬 좌표 (spawnPoint 기준)
+            currentPosition = player.localPosition;
+        }
+
+        // 회전 정보 (VR 카메라의 Y축 회전 사용)
+        float yRotation = vrCamera.eulerAngles.y;
+        var currentRotation = Quaternion.Euler(0, yRotation, 0);
+
         currentMonitoringData.pos = currentPosition;
         currentMonitoringData.rotQ = currentRotation;
         currentMonitoringData.eulerDeg = currentRotation.eulerAngles;
-        currentMonitoringData.altitude = Mathf.RoundToInt(currentPosition.y);
-        
+        currentMonitoringData.altitude = Mathf.RoundToInt(player.position.y);  // 고도는 항상 world position 사용
+
         // 위치와 회전 업데이트
         lastPlayerPosition = currentPosition;
         lastPlayerRotation = currentRotation;
+    }
+    
+    /// <summary>
+    /// 비행기 위치, 회전값 업데이트
+    /// </summary>
+    public void SetMonitoringDataPlanePos(Vector3 pos, float rotY)
+    {
+        currentMonitoringData.planePos = pos;
+        currentMonitoringData.planeRotY = rotY;
+    }   
+
+    /// <summary>
+    /// 교육생 상태 정보 업데이트
+    /// </summary>
+    /// <param name="pIsPara"></param>
+    /// <param name="pIsSubPara"></param>
+    /// <param name="pIsLanding"></param>
+    public void SetMonitoringDataPlayerFlag(bool pIsPara, bool pIsSubPara, bool pIsLanding)
+    {
+        currentMonitoringData.isPara = pIsPara;
+        currentMonitoringData.isSubPara = pIsSubPara;
+        currentMonitoringData.isLanding = pIsLanding;
     }
 
     /// <summary>
@@ -336,13 +385,14 @@ public class ParticipantManager : MonoBehaviour
             try
             {
                 WS_DB_Client.Instance.SendMonitoringData(currentMonitoringData);
-                
-                // 디버그 로그 (성능을 위해 조건부 컴파일)
-                // #if UNITY_EDITOR
-                // Debug.Log($"[ParticipantManager] 데이터 전송 - 위치: {currentMonitoringData.pos}m, " + 
-                //           $"쿼너티언: {currentMonitoringData.rotQ}" +
-                //          $"오일러: {currentMonitoringData.eulerDeg}");
-                // #endif
+
+                if (isDebugMode)
+                {
+                    Debug.Log($"[SendMonitoringData] 1. 비행기 위치 : {currentMonitoringData.planePos}\n " +
+                              $"2. 비행기 회전 : {currentMonitoringData.planeRotY}\n" +
+                              $"3. 플레이어 낙하산 여부, 보조 낙하산 여부, 착지 여부 : " +
+                              $"{currentMonitoringData.isPara}, {currentMonitoringData.isSubPara}, {currentMonitoringData.isLanding}");
+                }
             }
             catch (Exception e)
             {
@@ -422,21 +472,21 @@ public class ParticipantManager : MonoBehaviour
     public void ClearAllOtherParticipants()
     {
         otherParticipants.Clear();
-        
+
         // 모든 시각화 오브젝트 제거
-        foreach (var kvp in participantVisuals)
+        foreach (var kvp in participantVisuals.ToList())
         {
             if (kvp.Value != null)
                 Destroy(kvp.Value);
         }
         participantVisuals.Clear();
-        
+
         Debug.Log("[ParticipantManager] 모든 다른 참가자 데이터 초기화");
     }
     #endregion
     
     #region Joint Data System
-    
+
     /// <summary>
     /// 관절 데이터 전송
     /// </summary>
@@ -448,15 +498,45 @@ public class ParticipantManager : MonoBehaviour
             {
                 // 데이터 수집
                 var jointData = playerJointMapper.CollectData();
-                
+                var fingerData = playerJointMapper.CollectFingerData();
+
                 if (jointData != null)
                 {
+                    if (isDebugMode)
+                    {
+                        Debug.Log($"[ParticipantManager] 📤 관절 데이터 전송 - SimNo: {jointData.simNo}\n" +
+                                  $"  다리: ThighL({jointData.thighL.x},{jointData.thighL.y},{jointData.thighL.z}), CalfL({jointData.calfL}) | " +
+                                  $"ThighR({jointData.thighR.x},{jointData.thighR.y},{jointData.thighR.z}), CalfR({jointData.calfR})\n" +
+                                  $"  몸통: Spine({jointData.spine.x},{jointData.spine.y},{jointData.spine.z}), Chest({jointData.chest.x},{jointData.chest.y},{jointData.chest.z})\n" +
+                                  $"  팔L: ClavicleL({jointData.clavicleL.y},{jointData.clavicleL.z}), UpperArmL({jointData.upperArmL.x},{jointData.upperArmL.y},{jointData.upperArmL.z}), ForearmL({jointData.forearmL}), HandL({jointData.handL})\n" +
+                                  $"  팔R: ClavicleR({jointData.clavicleR.y},{jointData.clavicleR.z}), UpperArmR({jointData.upperArmR.x},{jointData.upperArmR.y},{jointData.upperArmR.z}), ForearmR({jointData.forearmR}), HandR({jointData.handR})\n" +
+                                  $"  머리: Neck({jointData.neck.x},{jointData.neck.y},{jointData.neck.z}), Head({jointData.head.x},{jointData.head.y},{jointData.head.z})");
+                    }
                     // 전송
                     WS_DB_Client.Instance.SendJointRotationData(jointData);
                 }
                 else
                 {
-                    Debug.LogError($"[ParticipantManager] ❌ CollectData()가 null을 반환했습니다.");
+                    Debug.LogError($"[ParticipantManager] ❌ 수집된 관절 데이터가 null 입니다.");
+                }
+
+                if (fingerData != null)
+                {
+                    if (isDebugMode)
+                    {
+                        // JSON 직렬화 결과 확인
+                        string jsonString = Newtonsoft.Json.JsonConvert.SerializeObject(fingerData);
+                        Debug.Log($"[ParticipantManager] 📤 손가락 데이터 전송 - SimNo: {fingerData.simNo}\n" +
+                                  $"  왼손: fgL0={fingerData.fgL0}, fgL1={fingerData.fgL1}, fgL2={fingerData.fgL2}, fgL3={fingerData.fgL3}, fgL4={fingerData.fgL4}\n" +
+                                  $"  오른손: fgR0={fingerData.fgR0}, fgR1={fingerData.fgR1}, fgR2={fingerData.fgR2}, fgR3={fingerData.fgR3}, fgR4={fingerData.fgR4}\n" +
+                                  $"  📋 JSON: {jsonString}");
+                    }
+                    // 전송
+                    WS_DB_Client.Instance.SendFingerData(fingerData);
+                }
+                else
+                {
+                    Debug.LogError($"[ParticipantManager] ❌ 수집된 손가락 데이터가 null 입니다.");
                 }
             }
             catch (System.Exception e)
@@ -470,54 +550,85 @@ public class ParticipantManager : MonoBehaviour
             Debug.LogWarning($"[ParticipantManager] playerJointMapper가 null입니다.");
         }
     }
-    
+
+    /// <summary>
+    /// 시각화 오브젝트의 아바타 컴포넌트 가져오기 (없으면 생성)
+    /// </summary>
+    private OtherParticipantAvatar GetOrCreateAvatar(string targetSimNo)
+    {
+        // 자신의 데이터는 무시
+        if (targetSimNo == simNo && !isDebugMode)
+            return null;
+
+        // 1. 캐시에서 먼저 찾기
+        if (otherParticipantAvatars.TryGetValue(targetSimNo, out OtherParticipantAvatar avatar) && avatar != null)
+        {
+            return avatar;
+        }
+
+        // 2. 시각화 오브젝트에서 찾거나 생성
+        if (participantVisuals.TryGetValue(targetSimNo, out GameObject visual) && visual != null)
+        {
+            avatar = visual.GetComponent<OtherParticipantAvatar>();
+            if (avatar == null)
+            {
+                // 컴포넌트가 없으면 추가
+                avatar = visual.AddComponent<OtherParticipantAvatar>();
+                avatar.participantSimNo = int.Parse(targetSimNo);
+                Debug.Log($"[ParticipantManager] {targetSimNo}에 OtherParticipantAvatar 컴포넌트 추가");
+            }
+            otherParticipantAvatars[targetSimNo] = avatar;
+            return avatar;
+        }
+
+#if UNITY_EDITOR
+        Debug.LogWarning($"[ParticipantManager] {targetSimNo}의 참가자 모델을 찾을 수 없습니다.");
+#endif
+        return null;
+    }
+
     /// <summary>
     /// 다른 참가자의 관절 데이터 수신 및 적용
     /// </summary>
     public void ReceiveJointRotationData(JointRotation data)
     {
-        var targetNo = data.simNo.ToString();
-        
-        // 자신의 데이터는 무시
-        if (targetNo == simNo && isDebugMode == false)
-            return;
-        
-        // OtherParticipantAvatar 컴포넌트를 찾아서 데이터 적용
-        if (otherParticipantAvatars.ContainsKey(targetNo))
+        if (isDebugMode)
         {
-            // 이미 등록된 아바타가 있으면 직접 적용
-            OtherParticipantAvatar avatar = otherParticipantAvatars[targetNo];
-            if (avatar != null)
-            {
-                avatar.ApplyData(data);
-            }
+            Debug.Log($"[ParticipantManager] 📥 관절 데이터 수신 - SimNo: {data.simNo}\n" +
+                      $"  다리: ThighL({data.thighL.x},{data.thighL.y},{data.thighL.z}), CalfL({data.calfL}) | " +
+                      $"ThighR({data.thighR.x},{data.thighR.y},{data.thighR.z}), CalfR({data.calfR})\n" +
+                      $"  몸통: Spine({data.spine.x},{data.spine.y},{data.spine.z}), Chest({data.chest.x},{data.chest.y},{data.chest.z})\n" +
+                      $"  팔L: ClavicleL({data.clavicleL.y},{data.clavicleL.z}), UpperArmL({data.upperArmL.x},{data.upperArmL.y},{data.upperArmL.z}), ForearmL({data.forearmL}), HandL({data.handL})\n" +
+                      $"  팔R: ClavicleR({data.clavicleR.y},{data.clavicleR.z}), UpperArmR({data.upperArmR.x},{data.upperArmR.y},{data.upperArmR.z}), ForearmR({data.forearmR}), HandR({data.handR})\n" +
+                      $"  머리: Neck({data.neck.x},{data.neck.y},{data.neck.z}), Head({data.head.x},{data.head.y},{data.head.z})");
         }
-        else if (participantVisuals.ContainsKey(targetNo))
+
+        var avatar = GetOrCreateAvatar(data.simNo.ToString());
+        if (avatar != null)
         {
-            // 시각화 오브젝트는 있지만 아바타 컴포넌트가 없는 경우
-            GameObject visual = participantVisuals[targetNo];
-            if (visual != null)
-            {
-                OtherParticipantAvatar avatar = visual.GetComponent<OtherParticipantAvatar>();
-                if (avatar == null)
-                {
-                    // 컴포넌트가 없으면 추가
-                    avatar = visual.AddComponent<OtherParticipantAvatar>();
-                    avatar.participantSimNo = int.Parse(targetNo);
-                    otherParticipantAvatars[targetNo] = avatar;
-                    Debug.Log($"[ParticipantManager] {targetNo}에 OtherParticipantAvatar 컴포넌트 추가");
-                }
-                avatar.ApplyData(data);
-            }
-        }
-        else
-        {
-            #if UNITY_EDITOR
-            Debug.LogWarning($"[ParticipantManager] {targetNo}의 참가자 모델을 찾을 수 없습니다.");
-            #endif
+            avatar.ApplyData(data);
         }
     }
-    
+
+    /// <summary>
+    /// 다른 참가자의 손가락 데이터 수신 및 적용
+    /// </summary>
+    public void ReceiveFingerRotationData(FingerRotation data)
+    {
+        if (isDebugMode)
+        {
+            Debug.Log($"[ParticipantManager] 📥 손가락 데이터 수신 - SimNo: {data.simNo}\n" +
+                      $"  왼손: Thumb({data.fgL0}), Index({data.fgL1}), Middle({data.fgL2}), Ring({data.fgL3}), Pinky({data.fgL4})\n" +
+                      $"  오른손: Thumb({data.fgR0}), Index({data.fgR1}), Middle({data.fgR2}), Ring({data.fgR3}), Pinky({data.fgR4})");
+        }
+
+        var avatar = GetOrCreateAvatar(data.simNo.ToString());
+        if (avatar != null)
+        {
+            avatar.ApplyFingerData(data);
+        }
+    }
+
     #endregion
     
     #region Participant Visualization
@@ -562,9 +673,10 @@ public class ParticipantManager : MonoBehaviour
 
         // 초기 위치 설정
         int idx = int.Parse(pSimNo) - 1;
-        visual.transform.position = data.pos;
+        //visual.transform.position = data.pos;
         visual.transform.rotation = data.rotQ;
         visual.transform.parent = spawnPoint[idx];
+        visual.transform.localPosition = new Vector3(0, 0, 0);
 
         // Dictionary에 추가
         participantVisuals[pSimNo] = visual;
@@ -582,17 +694,40 @@ public class ParticipantManager : MonoBehaviour
         {
             CreateParticipantVisual(pSimNo, data);
         }
-        
+
+        // 점프 여부 확인
+        var isJump = StateManager_New.Inst.isJump;
+
         GameObject visual = participantVisuals[pSimNo];
         if (visual != null)
         {
-            // 부드러운 위치 이동
-            visual.transform.position = Vector3.Lerp(visual.transform.position, data.pos, Time.deltaTime * 10f);
-            visual.transform.rotation = Quaternion.Lerp(visual.transform.rotation, data.rotQ, Time.deltaTime * 10f);
-            
-            // 즉시 위치 업데이트
-            // visual.transform.position = data.pos;
-            // visual.transform.rotation = data.rotQ;
+            // 회전은 항상 부드럽게 보간
+            visual.transform.rotation = Quaternion.Lerp(visual.transform.rotation, data.rotQ, Time.deltaTime * 5f);
+
+            // 위치 동기화 - 직관적인 방식
+            if (isJump || SceneManager.sceneCount == 0)
+            {
+                // 점프 후: 절대 좌표 사용 (world position)
+                visual.transform.position = data.pos;
+            }
+            else
+            {
+                // 점프 전: 로컬 좌표 사용 (spawnPoint 기준)
+                // 부드러운 보간으로 떨림 감소
+                visual.transform.localPosition = Vector3.Lerp(
+                    visual.transform.localPosition,  // 현재 로컬 위치
+                    data.pos,                         // 받은 로컬 위치
+                    Time.deltaTime * 10f
+                );
+            }
+
+            // 낙하산 상태 업데이트
+            var avatar = visual.GetComponent<OtherParticipantAvatar>();
+            if (avatar != null)
+            {
+                if(isDebugMode) Debug.Log($"낙하산 상태 업데이트 : 낙하산 {data.isPara}, 서브 낙하산 {data.isSubPara}");
+                avatar.UpdateParachuteState(data.isPara, data.isSubPara);
+            }
         }
     }
     
@@ -601,11 +736,70 @@ public class ParticipantManager : MonoBehaviour
     /// </summary>
     private void UpdateAllParticipantVisuals()
     {
-        foreach (var kvp in otherParticipants)
+        // ToList()로 스냅샷 생성하여 순회 중 Dictionary 수정 방지 (WebSocket 멀티스레딩 동시성 문제 해결)
+        foreach (var kvp in otherParticipants.ToList())
         {
             UpdateParticipantVisual(kvp.Key, kvp.Value);
         }
     }
-    
+
+    #endregion
+
+    #region Door Lineup System
+
+    /// <summary>
+    /// 문 앞에 줄 세우기 - 더미 모델 뒤에 배치
+    /// </summary>
+    /// <param name="doorExitPoint">문(Exit) 위치 Transform</param>
+    /// <param name="lineSpacing">줄 간격 (기본 1.0m)</param>
+    public void LineupAtDoor(Transform doorExitPoint, float lineSpacing = 1.0f)
+    {
+        if (player == null)
+        {
+            Debug.LogWarning("[ParticipantManager] 플레이어를 찾을 수 없어 줄 세우기를 실행할 수 없습니다.");
+            return;
+        }
+
+        if (doorExitPoint == null)
+        {
+            Debug.LogWarning("[ParticipantManager] 문(Exit) 위치를 찾을 수 없습니다.");
+            return;
+        }
+
+        // 1. 문 위치와 방향 계산
+        Vector3 doorPos = doorExitPoint.position;
+        Vector3 doorBackward = -doorExitPoint.forward; // 문 뒤쪽 방향
+
+        // 2. 더미 모델들 중 문에서 가장 먼 거리 찾기
+        float maxDistanceFromDoor = 0f;
+        int dummyCount = 0;
+
+        foreach (var kvp in participantVisuals.ToList())
+        {
+            if (kvp.Value != null)
+            {
+                // 문 뒤쪽 방향으로의 거리만 계산 (투영)
+                Vector3 toDummy = kvp.Value.transform.position - doorPos;
+                float distanceAlongLine = Vector3.Dot(toDummy, doorBackward);
+
+                if (distanceAlongLine > maxDistanceFromDoor)
+                {
+                    maxDistanceFromDoor = distanceAlongLine;
+                }
+                dummyCount++;
+            }
+        }
+
+        // 3. 플레이어 위치 계산 및 이동
+        Vector3 targetPosition = doorPos + doorBackward * (maxDistanceFromDoor + lineSpacing);
+        targetPosition.y = doorPos.y; // 높이는 문과 같은 높이로
+
+        player.position = targetPosition;
+        player.rotation = doorExitPoint.rotation; // 문과 같은 방향
+
+        Debug.Log($"[ParticipantManager] 줄 세우기 완료 - 더미 모델 {dummyCount}명, " +
+                  $"최대 거리: {maxDistanceFromDoor:F2}m, 배치 위치: {targetPosition}");
+    }
+
     #endregion
 }

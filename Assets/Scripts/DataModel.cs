@@ -43,6 +43,7 @@ public class Procedure
     public string altitudeTriggerType;
     public string isReaction;
     public string evaluationId;
+    public string skipAircraftPosition;
 }
 
 /// <summary>
@@ -186,6 +187,7 @@ public enum FailCondition
 /// </summary>
 public enum Item
 {
+    None,
     Altimeter,
     Helmet,
     Hook,

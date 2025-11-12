@@ -14,7 +14,10 @@ public class InstructionUI : MonoBehaviour
     [SerializeField] private float fadeDuration  = 0.3f;
 
     [Header("UI")]
+    [SerializeField] private GameObject prefab;
+    [SerializeField] private GameObject textInst;
     [SerializeField] private TMP_Text desc;
+    [SerializeField] private Transform prefabParent; // 프리팹이 생성될 부모 Transform
 
     private CanvasGroup cg;
     private Vector3 targetScale = Vector3.one;
@@ -25,10 +28,24 @@ public class InstructionUI : MonoBehaviour
 
     // 공용 타이머
     private float timer;
+    private MediaType _mediaType;
+
+    // 생성된 프리팹 인스턴스 참조
+    private GameObject instantiatedPrefab;
 
     void Awake()
     {
         cg = GetComponent<CanvasGroup>();
+    }
+
+    void OnDestroy()
+    {
+        // 안전하게 생성된 프리팹 정리
+        if (instantiatedPrefab != null)
+        {
+            Destroy(instantiatedPrefab);
+            instantiatedPrefab = null;
+        }
     }
 
     /// <summary>
@@ -37,12 +54,51 @@ public class InstructionUI : MonoBehaviour
     /// <param name="data"></param>
     public void Init(Instruction data)
     {
-        if (data.mediaType == MediaType.Prefab)
+        _mediaType = data.mediaType;
+        if (_mediaType == MediaType.Prefab)
         {
+            // 이전에 생성된 프리팹이 있다면 제거
+            if (instantiatedPrefab != null)
+            {
+                Destroy(instantiatedPrefab);
+                instantiatedPrefab = null;
+            }
+
+            // Resources 폴더에서 프리팹 로드 (예: Resources/Instructions/프리팹이름)
+            GameObject prefabToLoad = Resources.Load<GameObject>($"Instructions/{data.mediaContent}");
+
+            if (prefabToLoad != null)
+            {
+                // 프리팹 인스턴스 생성
+                Transform parent = prefabParent != null ? prefabParent : transform;
+                instantiatedPrefab = Instantiate(prefabToLoad, parent);
+
+                // 로컬 위치 초기화
+                instantiatedPrefab.transform.localPosition = Vector3.zero;
+                instantiatedPrefab.transform.localRotation = Quaternion.identity;
+                instantiatedPrefab.transform.localScale = Vector3.one;
+
+                Debug.Log($"[InstructionUI] 프리팹 생성 완료: {data.mediaContent}");
+            }
+            else
+            {
+                Debug.LogWarning($"[InstructionUI] 프리팹을 찾을 수 없습니다: Resources/Instructions/{data.mediaContent}");
+            }
             
+            textInst.SetActive(false);
         }
-        desc.text = data.mediaContent;
-        
+        else
+        {
+            // 텍스트 타입인 경우
+            desc.text = data.mediaContent;
+            
+            textInst.SetActive(true);
+            if (instantiatedPrefab != null)
+            {
+                instantiatedPrefab.SetActive(false);
+            }
+        }
+
         transform.localScale = Vector3.zero;
         cg.alpha = 1f;
         cg.interactable = true;
@@ -81,6 +137,8 @@ public class InstructionUI : MonoBehaviour
     /// </summary>
     void HoldUpdate()
     {
+        if(_mediaType == MediaType.Prefab) return;
+        
         timer += Time.unscaledDeltaTime;
         if (timer >= holdDuration)
         {
@@ -112,7 +170,14 @@ public class InstructionUI : MonoBehaviour
             updateAction = null;
             OnFadeComplete?.Invoke();
             OnFadeComplete = null;
-            
+
+            // 생성된 프리팹 정리
+            if (instantiatedPrefab != null)
+            {
+                Destroy(instantiatedPrefab);
+                instantiatedPrefab = null;
+            }
+
             // 카메라 앞에 배치할때 바꾼 부모를 원래대로
             transform.SetParent(UIManager.Inst.transform);
             gameObject.SetActive(false);

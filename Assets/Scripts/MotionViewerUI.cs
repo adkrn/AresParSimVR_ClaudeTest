@@ -3,11 +3,7 @@ using TMPro;   // TextMeshPro 패키지 사용 (Dropdown/Text 등)
 using UnityEngine;
 using UnityEngine.UI;
 using System;
-using UnityEditor.PackageManager;
-using UnityEditor;
-using System.Data;
 using Newtonsoft.Json;
-using Unity.VisualScripting;
 
 public class MotionViewerUI : MonoBehaviour
 {

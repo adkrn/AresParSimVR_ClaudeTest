@@ -13,8 +13,9 @@ public class UIManager : MonoBehaviour
     [SerializeField] private InstructionUI instructionUI;
     [SerializeField] private ResultUI resultUI;
     [SerializeField] private GameObject pauseUI;
+    [SerializeField] private AudioSource voiceAudioSource; // 음성 재생용 AudioSource (2D)
     private FadeController fadeController;
-    
+
     public List<EvalResult> evalRList = new();
     public EvaluationListData evalData;
 
@@ -87,9 +88,18 @@ public class UIManager : MonoBehaviour
                 break;
             }
         }
-        
+
         // 사운드 재생
         var audio = FileUtils.GetVoice(instData.voiceContent);
+        if (audio != null && voiceAudioSource != null)
+        {
+            voiceAudioSource.PlayOneShot(audio);
+            Debug.Log($"[UIManager] 음성 재생: {instData.voiceContent}");
+        }
+        else if (voiceAudioSource == null)
+        {
+            Debug.LogWarning("[UIManager] voiceAudioSource가 할당되지 않았습니다!");
+        }
     }
 
     /// <summary>
@@ -249,6 +259,17 @@ public class UIManager : MonoBehaviour
 
     public void ShowPauseUI()
     {
+        if (fadeController == null)
+        {
+            fadeController = FindAnyObjectByType<FadeController>();
+
+            if (fadeController == null)
+            {
+                Debug.LogError("일시정지 오류 : FadeController가 없습니다.");
+                return;
+            }
+        }
+        
         fadeController.Init(FadeDir.Out, () =>
         {
             Time.timeScale = 0;
@@ -295,5 +316,14 @@ public class UIManager : MonoBehaviour
             instructionUI.updateAction = null;
             instructionUI.gameObject.SetActive(false);
         }
+    }
+
+    /// <summary>
+    /// 시간 제한 UI 이벤트 정리
+    /// </summary>
+    public void CleanTimeUIEvent()
+    {
+        timeLimitUI.OnFail = null;
+        timeLimitUI.OnSuccess = null;
     }
 }

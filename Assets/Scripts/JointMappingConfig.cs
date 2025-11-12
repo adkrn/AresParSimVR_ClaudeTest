@@ -107,7 +107,8 @@ public class JointMappingConfig : ScriptableObject
 
 public enum JointDataType
 {
-    Vector3,
-    Vector2,
-    Short
+    Vector3,    // x,y,z 회전
+    Vector2,    // y,z 회전
+    Short,      // z축 회전만 (forearmL, forearmR, calfL, calfR)
+    ShortY      // y축 회전만 (handL, handR)
 }

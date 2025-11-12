@@ -444,9 +444,29 @@ namespace Oculus.Movement.AnimationRigging
                 return;
             }
 
+            // 씬 전환 시 animator가 아직 초기화되지 않았을 수 있음
             var animator = retargetingLayer.GetAnimatorTargetSkeleton();
+            if (animator == null)
+            {
+                // RetargetingLayer가 아직 초기화 중이므로 이 프레임은 스킵
+                // 다음 프레임에서 RetargetingLayer의 Update가 animator를 설정할 것임
+                Debug.LogWarning("[RetargetingProcessorCorrectBones] Animator is not initialized yet. " +
+                    "Waiting for RetargetingLayer initialization. Skipping this frame.");
+                return;
+            }
+
             var leftHand = animator.GetBoneTransform(HumanBodyBones.LeftHand);
             var rightHand = animator.GetBoneTransform(HumanBodyBones.RightHand);
+
+            // Hand bones가 null일 수 있음 - 이 경우도 Animator 초기화가 완료되지 않은 상태
+            if (leftHand == null || rightHand == null)
+            {
+                Debug.LogWarning("[RetargetingProcessorCorrectBones] Hand bones are not properly mapped yet. " +
+                    $"LeftHand: {(leftHand == null ? "null" : "ok")}, RightHand: {(rightHand == null ? "null" : "ok")}. " +
+                    "Waiting for bone mapping initialization. Skipping this frame.");
+                return;
+            }
+
             var startingLeftHandPos = leftHand.localPosition;
             var startingRightHandPos = rightHand.localPosition;
 
@@ -856,9 +876,27 @@ namespace Oculus.Movement.AnimationRigging
                 UpdatePerFrameCorrectBonesMetadata(retargetingLayer, ovrBones);
             }
 
+            // 씬 전환 시 animator가 아직 초기화되지 않았을 수 있음 (Job 모드)
             var animator = retargetingLayer.GetAnimatorTargetSkeleton();
+            if (animator == null)
+            {
+                Debug.LogWarning("[RetargetingProcessorCorrectBones] Animator is not initialized yet in Job mode. " +
+                    "Waiting for RetargetingLayer initialization. Skipping this frame.");
+                return new JobHandle();
+            }
+
             var leftHand = animator.GetBoneTransform(HumanBodyBones.LeftHand);
             var rightHand = animator.GetBoneTransform(HumanBodyBones.RightHand);
+
+            // Hand bones가 null일 수 있음 (Job 모드)
+            if (leftHand == null || rightHand == null)
+            {
+                Debug.LogWarning("[RetargetingProcessorCorrectBones] Hand bones are not properly mapped yet in Job mode. " +
+                    $"LeftHand: {(leftHand == null ? "null" : "ok")}, RightHand: {(rightHand == null ? "null" : "ok")}. " +
+                    "Waiting for bone mapping initialization. Skipping this frame.");
+                return new JobHandle();
+            }
+
             var startingLeftHandPos = leftHand.localPosition;
             var startingRightHandPos = rightHand.localPosition;
 

@@ -270,6 +270,20 @@ namespace Oculus.Movement.AnimationRigging
             /// <inheritdoc cref="RetargetingProcessorCorrectHand.PrepareRetargetingProcessor"/>
             public void PrepareRetargetingProcessor()
             {
+                if (_armBones == null || _armBones.Length == 0)
+                {
+                    Debug.LogWarning("[RetargetingProcessorCorrectHand] Arm bones array is null or empty. " +
+                        "Ensure the character has properly mapped arm bones in the Avatar configuration.");
+                    return;
+                }
+
+                if (_armBones[0] == null)
+                {
+                    Debug.LogWarning("[RetargetingProcessorCorrectHand] Hand bone (arm bones[0]) is null. " +
+                        "Check that wrist/hand bones are properly configured in the Avatar.");
+                    return;
+                }
+
                 _originalHandPosition = _armBones[0].position;
             }
 

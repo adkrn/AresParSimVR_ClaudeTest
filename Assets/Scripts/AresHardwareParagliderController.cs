@@ -9,6 +9,7 @@ public class AresHardwareParagliderController : MonoBehaviour
 {
     [Header("━━━ Component References ━━━")]
     [SerializeField] private Transform pasimPlayer;
+    [SerializeField] private Transform paraRotPivot;
     public Rigidbody rb;
     [SerializeField] private Collider col;
     [SerializeField] private WindZone windZone;
@@ -35,13 +36,14 @@ public class AresHardwareParagliderController : MonoBehaviour
     
     // 상태 플래그
     public bool isJumpStart = false;
-    private bool isPara = false;
+    public bool isPara = false;
+    public bool isSubPara = false;
     private bool isUpdate = true;
     
     // 라이저 입력 (0~1)
-    private float leftPull = 0f;
-    private float rightPull = 0f;
-    private bool isRiserInput = false;
+    [SerializeField] private float leftPull = 0f;
+    [SerializeField] private float rightPull = 0f;
+    [SerializeField] private bool isRiserInput = false;
     
     // 목표 각도 추적
     private float targetYaw = 0f;
@@ -54,12 +56,13 @@ public class AresHardwareParagliderController : MonoBehaviour
     private float lastHardwareUpdateTime;
     private readonly float hardwareUpdateInterval = 0.02f;
 
-    private float currentUnityYaw = 0;
-    private float unityToHardwareOffset = 0f;
+    private float unityBaseYaw = 0f;        // 점프 시 Unity 기준점
+    private float hardwareBaseYaw = 0f;     // 점프 시 하드웨어 기준점
+    private bool needYawRecalibration = false;  // 재연결 시 기준점 리셋 플래그
 
     private AresEvent currentEvent = AresEvent.None;
     
-    private AresMotionData cachedMotionData;
+    [SerializeField] private AresMotionData cachedMotionData;
     private Vector3 cachedForwardDir;
     private Vector3 cachedVelocity;
     
@@ -89,7 +92,7 @@ public class AresHardwareParagliderController : MonoBehaviour
         if (rb)
         {
             rb.useGravity = false;
-            rb.constraints = RigidbodyConstraints.None;
+            rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
         }
     }
 
@@ -104,8 +107,14 @@ public class AresHardwareParagliderController : MonoBehaviour
     {
         if (!isJumpStart) return;
         
+        currentZ = pasimPlayer.eulerAngles.z;
         UpdateTransform();
+        RiserDamping();
         UpdateBrakeEffect();
+    }
+
+    private void FixedUpdate()
+    {
         RegulateForwardSpeed();
         RegulateSinkRate();
     }
@@ -122,7 +131,7 @@ public class AresHardwareParagliderController : MonoBehaviour
     private void CalculateAndSendTargetRotation()
     {
         // 라이저를 당기는 중이거나 하드웨어 연동 상태에서만 실행함
-        if (!isRiserInput)
+        if (!isPara)
         {
             return;
         }
@@ -136,31 +145,27 @@ public class AresHardwareParagliderController : MonoBehaviour
         float turnInput = leftPull - rightPull;  // -1 ~ +1
 
         // 속도 계산
-        float rollSpeed = Mathf.Abs(turnInput * 3000f);  // 0 ~ 3000 RPM
+        float rollSpeed = Mathf.Abs(turnInput * 1000f);  // 0 ~ 3000 RPM
         
         lastRollSpeed = Mathf.Max(lastRollSpeed * 0.9f, minReturnSpeed);
 
         if (turnInput > 0)  // 왼쪽 회전중
         {
+            cachedMotionData.RollRightSpeed = minReturnSpeed;
             cachedMotionData.RollLeftSpeed = rollSpeed;
-            // 반대쪽은 비례적으로 따라오되, 최소 속도 보장
-            float followSpeed = rollSpeed * followRatio;
-            cachedMotionData.RollRightSpeed = Mathf.Lerp(minReturnSpeed, followSpeed,Mathf.Abs(turnInput));
             lastRollSpeed = rollSpeed;
         }
         else if (turnInput < 0)  // 오른쪽 회전중
         {
-            // 반대쪽은 비례적으로 따라오되, 최소 속도 보장
-            float followSpeed = rollSpeed * followRatio;
-            cachedMotionData.RollLeftSpeed = Mathf.Lerp(minReturnSpeed, followSpeed,Mathf.Abs(turnInput));
+            cachedMotionData.RollLeftSpeed = minReturnSpeed;
             cachedMotionData.RollRightSpeed = rollSpeed;
             lastRollSpeed = rollSpeed;
         }
         else  // 중립 복귀
         {
             // 점진적으로 복귀 속도 감소 (최소 600 RPM 보장)
-            cachedMotionData.RollLeftSpeed = lastRollSpeed;
-            cachedMotionData.RollRightSpeed = lastRollSpeed;
+            cachedMotionData.RollLeftSpeed = minReturnSpeed;
+            cachedMotionData.RollRightSpeed = minReturnSpeed;
         }
 
         // Yaw 값 설정
@@ -171,40 +176,58 @@ public class AresHardwareParagliderController : MonoBehaviour
         AresHardwareService.Inst.SendMotionData(cachedMotionData);
     }
 
-    private float nowYaw;
+    [SerializeField] private float nowYaw;
     private float nowRoll;
 
     private float rollLerpValue;
-    private float newRollValue;
+    [SerializeField] private float newRollValue;
+
+    private float currentZ;
     
     // 적용할 회전값 업데이트
     private void HandleAresFeedback(AresFeedbackData feedbackData)
     {
+        // 재연결 후 기준점 재설정
+        if (needYawRecalibration)
+        {
+            hardwareBaseYaw = feedbackData.YawPosition;
+            unityBaseYaw = pasimPlayer.eulerAngles.y;
+            needYawRecalibration = false;
+            Debug.Log($"[Yaw Recalibration] 기준점 재설정: Unity={unityBaseYaw:F1}°, Hardware={hardwareBaseYaw:F1}°");
+        }
+
+        // 1. 라이저 입력 업데이트
         UpdateRiserInputs(feedbackData);
+        
+        // 2. 하드웨어로 목표 roll, yaw 전송
         CalculateAndSendTargetRotation();
 
         // Yaw 처리
-        float hardwareYaw = feedbackData.YawPosition + unityToHardwareOffset;
-        // 360도 반전 (하드웨어와 Unity의 회전 방향 차이 보정)
-        hardwareYaw = 360 - hardwareYaw;
-        nowYaw = hardwareYaw;
-        
+        float hardwareYaw = feedbackData.YawPosition;
+
+        // 하드웨어의 상대 변화량 계산 (360도 경계 자동 처리)
+        float hardwareDelta = Mathf.DeltaAngle(hardwareBaseYaw, hardwareYaw);
+
+        // Unity Yaw에 상대 변화량 적용 (반전)
+        nowYaw = unityBaseYaw - hardwareDelta;
+
+        Debug.Log($"Yaw 처리: Hardware={hardwareYaw:F1}° (Base={hardwareBaseYaw:F1}°, Delta={hardwareDelta:F1}°) → Unity={nowYaw:F1}°");
+
         // roll 처리
         var turnInput = leftPull - rightPull;
-        var targetRollValue = turnInput * maxRoll;
-        var currentZ = pasimPlayer.eulerAngles.z;
-        newRollValue = Mathf.Lerp(currentZ, targetRollValue,  Mathf.Abs(targetRollValue) * 0.1f);
-        // rollLerpValue +=  targetRollValue * 0.1f;
+        
+        // 5% 이하는 무시
+        if (Mathf.Abs(turnInput) < 0.05f)
+        {
+            turnInput = 0f;
+        }
+        
+        newRollValue = turnInput * maxRoll;
 
         // // Roll 처리
         // // 롤 차이를 각도로 직접 변환
         // float rollDiff = feedbackData.RollLeft - feedbackData.RollRight;
         //
-        // // 5% 이하는 무시
-        // if (Mathf.Abs(rollDiff) < 0.05f)
-        // {
-        //     rollDiff = 0f;
-        // }
         //
         // // 목표 롤 각도 계산
         // float targetRollAngle = rollDiff * maxRoll;
@@ -215,17 +238,85 @@ public class AresHardwareParagliderController : MonoBehaviour
     private void UpdateTransform()
     {
         float currentYaw = pasimPlayer.eulerAngles.y;
-        // float currentRoll = pasimPlayer.eulerAngles.z;
+        float currentRoll = paraRotPivot.localEulerAngles.z;
+        
+        // ✅ -180~180 범위로 변환
+        if (currentRoll > 180f) currentRoll -= 360f;
         
         var newYaw = Mathf.LerpAngle(currentYaw, nowYaw, interpolationSpeed * Time.deltaTime);
-        // var newRoll = Mathf.LerpAngle(currentRoll, nowRoll, interpolationSpeed * Time.deltaTime);
+        var newRoll = Mathf.LerpAngle(currentRoll, newRollValue, interpolationSpeed * Time.deltaTime);
         
-        pasimPlayer.rotation = Quaternion.Euler(
-            pasimPlayer.eulerAngles.x,
-            newYaw,
-            newRollValue
-        );
+        // Quaternion targetRotation = Quaternion.Euler(
+        //     pasimPlayer.eulerAngles.x,
+        //     newYaw,
+        //     pasimPlayer.eulerAngles.z
+        // );
+        Quaternion targetRotation = Quaternion.Euler(0f, newYaw, 0f);
+
+        // 낙하산 중심점에 롤값 적용
+        paraRotPivot.localRotation = Quaternion.Euler(0, 0, newRoll);
+        
+        // Rigidbody 사용해서 물리 엔진과 동기화
+        if (rb != null)
+        {
+            rb.MoveRotation(targetRotation);
+        }
+        else
+        {
+            //pasimPlayer.rotation = targetRotation;
+        }
+
     }
+    
+    /// <summary>
+    /// 라이저 줄을 동시에 당겼을 때 발생하는 댐핑 값을 계산
+    /// </summary>
+    void RiserDamping()
+    {
+        // ── 브레이크(라이저 당김) 계산은 그대로 유지 ──
+        float brakeInputDiffer = 1f - Mathf.Abs(leftPull - rightPull);
+        float brakeInputMultiplier = brakeInputDiffer * (leftPull * rightPull);
+        brakeMultiplier = 1f - brakeInputMultiplier;
+        // Debug.Log("[ParagliderCtrl] 라이저 댐핑값 : " + brakeMultiplier);
+    }
+
+
+    private void UpdateRiserInputController()
+    {
+        var lValue = OVRInput.Get(OVRInput.Axis1D.PrimaryIndexTrigger, OVRInput.Controller.LTouch);
+        if (Input.GetKey(KeyCode.A) || lValue > 0.1f)
+        {
+            leftPull += Time.deltaTime / 4f;
+            if (leftPull > 1f) leftPull = 1f;
+
+            isRiserInput = true;
+        }
+        else
+        {
+            leftPull -= Time.deltaTime / 2f;
+            if (leftPull < 0f) leftPull = 0f;
+
+            isRiserInput = false;
+        }
+
+        var rValue = OVRInput.Get(OVRInput.Axis1D.PrimaryIndexTrigger, OVRInput.Controller.RTouch);
+        if (Input.GetKey(KeyCode.D) || rValue > 0.1f)
+        {
+            rightPull += Time.deltaTime / 4f;
+            if (rightPull > 1f) rightPull = 1f;
+            
+            isRiserInput = true;
+        }
+        else
+        {
+            rightPull -= Time.deltaTime / 2f;
+            if (rightPull < 0f) rightPull = 0f;
+            
+            isRiserInput = false;
+        }
+    }
+    
+    
     
     private void UpdateRiserInputs(AresFeedbackData feedback)
     {
@@ -270,7 +361,7 @@ public class AresHardwareParagliderController : MonoBehaviour
     
     private void RegulateSinkRate()
     {
-        if (!isPara || !rb) return;
+        if (!rb) return;
         
         // 하강 속도 제어
         float sinkError = targetSinkSpeed * sinkRateGain;
@@ -280,23 +371,17 @@ public class AresHardwareParagliderController : MonoBehaviour
     public void JumpStart()
     {
         isJumpStart = true;
-        currentUnityYaw = pasimPlayer.eulerAngles.y;
 
-        // 하드웨어의 실제 초기 위치를 먼저 확인
-        float hardwareInitialYaw = 180f; // 기본값: 중앙 위치
+        // 점프 순간의 Unity 방향을 기준점으로 저장
+        unityBaseYaw = pasimPlayer.eulerAngles.y;
 
-        hardwareInitialYaw = AresHardwareService.Inst.LatestFeedback.YawPosition;
-        Debug.Log($"[Jump Init] Hardware Initial Position: {hardwareInitialYaw:F1}°");
+        // 점프 순간의 하드웨어 Yaw를 기준점으로 저장
+        hardwareBaseYaw = AresHardwareService.Inst.LatestFeedback.YawPosition;
 
+        // nowYaw를 현재 방향으로 초기화 (하드웨어 없을 때 대비)
+        nowYaw = unityBaseYaw;
 
-        // Unity 좌표계와 하드웨어 좌표계 매칭
-        // Unity의 현재 방향이 하드웨어의 초기 위치와 일치하도록 오프셋 설정
-        unityToHardwareOffset = currentUnityYaw - hardwareInitialYaw;
-        //targetYaw = currentUnityYaw;
-
-        Debug.Log($"[Jump Init] Unity: {currentUnityYaw:F1}° " +
-                  $"Hardware: {hardwareInitialYaw:F1}° " +
-                  $"Offset: {unityToHardwareOffset:F1}°");
+        Debug.Log($"[Jump Init] Unity Base: {unityBaseYaw:F1}°, Hardware Base: {hardwareBaseYaw:F1}°");
 
         if (rb)
         {
@@ -345,6 +430,7 @@ public class AresHardwareParagliderController : MonoBehaviour
     {
         Debug.LogWarning("[ARES] Connection lost → Unity fallback");
         hardwarePriorityMode = false;
+        needYawRecalibration = true;  // 재연결 시 Yaw 기준점 재설정 필요
     }
     
     private AresEvent GetCurrentEvent()

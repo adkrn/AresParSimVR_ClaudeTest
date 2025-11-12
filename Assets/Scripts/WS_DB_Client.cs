@@ -4,14 +4,9 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
-using UnityEditor.PackageManager;
 using UnityEngine;
-using UnityEngine.Rendering.Universal;
-using UnityEngine.UI;
 using WebSocketSharp;
 using System.Collections;
-using static WS_DB_Client;
-using Palmmedia.ReportGenerator.Core.Reporting.Builders;
 
 public class WS_DB_Client : MonoBehaviour
 {
@@ -491,6 +486,14 @@ public class WS_DB_Client : MonoBehaviour
         ws.Send(_jsonSB.ToString());
     }
     
+    public void SendFingerData(FingerRotation data)
+    {
+        data.type = "fingerData";
+        _jsonSB.Clear();
+        _jsonSB.Append(JsonConvert.SerializeObject(data));
+        //Debug.Log($"MonitoringData ::: participantId: {data.participantId}, altitude : {data.altitude}, distance : {data.distance}, forwardSpeed : {data.forwardSpeed}, fallingSpeed : {data.fallingSpeed}");
+        ws.Send(_jsonSB.ToString());
+    }
     /// <summary>
     /// 관절 회전 데이터 전송 메서드
     /// </summary>
@@ -1987,6 +1990,7 @@ public class WS_DB_Client : MonoBehaviour
                     if (evalIndexDataResp.simNo == simulatorNumber)
                     {
                         evaluationIndex = evalIndexDataResp.evaluationIndex;
+                        UnityMainThreadDispatcher.Enqueue(() => { _stateManager.SaveResultData(); });
                         Debug.Log($"평가 인덱스 설정 완료 - SimNo: {evalIndexDataResp.simNo}, EvalId: {evaluationIndex}");
                     }
                     else
@@ -2073,6 +2077,24 @@ public class WS_DB_Client : MonoBehaviour
                             }
                         }
                         
+                    }
+                    break;
+                
+                case "fingerData":
+                    #if UNITY_EDITOR
+                    // Debug.Log($"[WS_DB_Client] 📥 손가락 데이터 수신 RAW JSON:\n{e.Data}");
+                    #endif
+
+                    var fingerRotResp = JsonConvert.DeserializeObject<FingerRotation>(e.Data);
+
+                    if (fingerRotResp != null)
+                    {
+                        #if UNITY_EDITOR
+                        // Debug.Log($"[WS_DB_Client] 📥 역직렬화 후 - fgL0={fingerRotResp.fgL0}, fgR0={fingerRotResp.fgR0}");
+                        #endif
+
+                        // 손가락 관절 데이터 적용
+                        ParticipantManager.Inst.ReceiveFingerRotationData(fingerRotResp);
                     }
                     break;
 
@@ -2630,6 +2652,9 @@ public class ScenarioData
     public DateTime modifyTime;
     public bool isUse;
     public bool isPreset;
+    public string pointX;
+    public string pointY;
+    public string allRouteId;
 }
 [Serializable]
 public class ScenarioDataResponse
@@ -2946,6 +2971,18 @@ public class MonitoringData
 
     // 비행기 좌표
     public Vector3 planePos;
+    
+    // 비행기 회전 ++
+    public float planeRotY;
+    
+    // 낙하산 여부 ++
+    public bool isPara;
+    
+    // 예비 낙하산 여부 ++
+    public bool isSubPara;
+
+    // 착지 여부 ++
+    public bool isLanding;
 }
 
 [Serializable]
@@ -2967,6 +3004,7 @@ public class JointRotation
     public Vector2S clavicleL;  // y,z
     public Vector3S upperArmL;  // x,y,z
     public short forearmL;      // z
+    public Vector3S handL;      // x,y,z
 
     public Vector3S neck;       // x,y,z
     public Vector3S head;       // x,y,z
@@ -2974,6 +3012,29 @@ public class JointRotation
     public Vector2S clavicleR;  // y,z
     public Vector3S upperArmR;  // x,y,z
     public short forearmR;      // z
+    public Vector3S handR;      // x,y,z
+}
+
+// 손가락 관절
+[Serializable]
+public class FingerRotation
+{
+    public string type;
+    public int simNo;
+    
+    // z
+    public short fgL0;
+    public short fgL1;
+    public short fgL2;
+    public short fgL3;
+    public short fgL4;
+    
+    // z
+    public short fgR0;
+    public short fgR1;
+    public short fgR2;
+    public short fgR3;
+    public short fgR4;
 }
 
 [Serializable]

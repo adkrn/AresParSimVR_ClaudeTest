@@ -156,18 +156,75 @@ public class DataManager
             return false;
         }
         
-        // 9. 시나리오의 routeId를 바탕으로 비행기 경로 정보들을 필터링
-        var routeId = scenario.routeId;
-        var routeCsvData = CsvParser.ReadWithHeader(DataName.CD_Routes, out var routeHeader);
-        var routeList = CsvParser.UpdateData<Route>(routeCsvData, routeHeader);
-        var route = routeList.SingleOrDefault(r => r.routeId == routeId);
-        if (route == null)
+        // 9. 시나리오 데이터의 pointX, pointY, allRouteId를 파싱해서 Route 리스트 생성
+        if (string.IsNullOrEmpty(scenario.pointX) ||
+            string.IsNullOrEmpty(scenario.pointY) ||
+            string.IsNullOrEmpty(scenario.allRouteId))
         {
-            Debug.LogError($"경로 데이터를 찾을 수 없습니다. routeId: {routeId}");
+            Debug.LogError("[DataManager] 시나리오의 route 데이터(pointX, pointY, allRouteId)가 비어있습니다.");
             return false;
         }
-        var routeFiltered = routeList.Where(r => r.routeGroup == route.routeGroup).ToList();
-        routes = routeFiltered;
+
+        // 쉼표로 분리
+        string[] xCoords = scenario.pointX.Split(',');
+        string[] yCoords = scenario.pointY.Split(',');
+        string[] routeIds = scenario.allRouteId.Split(',');
+
+        // 배열 길이 검증
+        if (xCoords.Length != yCoords.Length || xCoords.Length != routeIds.Length)
+        {
+            Debug.LogError($"[DataManager] Route 데이터 배열 길이가 일치하지 않습니다. " +
+                           $"X:{xCoords.Length}, Y:{yCoords.Length}, ID:{routeIds.Length}");
+            return false;
+        }
+
+        // Route 리스트 생성
+        routes = new List<Route>();
+        for (int i = 0; i < routeIds.Length; i++)
+        {
+            // 공백 제거 및 float 파싱
+            if (!float.TryParse(xCoords[i].Trim(), out float x))
+            {
+                Debug.LogError($"[DataManager] pointX 파싱 실패: '{xCoords[i]}' at index {i}");
+                return false;
+            }
+
+            if (!float.TryParse(yCoords[i].Trim(), out float y))
+            {
+                Debug.LogError($"[DataManager] pointY 파싱 실패: '{yCoords[i]}' at index {i}");
+                return false;
+            }
+
+            string routeId = routeIds[i].Trim();
+
+            var route = new Route
+            {
+                routeId = routeId,
+                pointX = x,
+                pointZ = y,  // Unity는 Y가 높이, Z가 깊이이므로 pointY를 pointZ에 매핑
+                jumpType = scenario.jumpType,
+                mapId = scenario.mapId,
+                // 기타 필드는 기본값 또는 빈 값
+                routeGroup = "",
+                routeName = $"Route_{i}",
+                pointName = $"Point_{i}",
+                isDropPoint = "0",
+                mapLocationId = "none",
+                skipAircraftPosition = 0,
+                isCompletePoint = false
+            };
+
+            routes.Add(route);
+        }
+
+        Debug.Log($"[DataManager] DB에서 {routes.Count}개의 Route 생성 완료");
+
+        // scenario.routeId가 routes 리스트에 있는지 검증
+        if (routes.All(r => r.routeId != scenario.routeId))
+        {
+            Debug.LogError($"[DataManager] scenario.routeId '{scenario.routeId}'가 allRouteId 목록에 없습니다!");
+            return false;
+        }
         // 9-1. route가 프로시저 완료 조건인지 체크해서 설정
         SetIsCompleteRoute();
         
@@ -268,20 +325,38 @@ public class DataManager
     public void SetIsCompleteRoute()
     {
         int scenarioRouteIndex = GetScenarioRouteIndex();
-        
-        var routeOffsets = new Dictionary<string, int>
-        {
-            //{ "TakeOff", -2 },
-            { "ThreeMinutes", -1 },
-            { "OneMinutes", 0 }
-        };
 
-        foreach (var proc in routeOffsets)
+        // procedures 리스트를 순회하면서 skipAircraftPosition이 있는 절차 찾기
+        foreach (var proc in procedures)
         {
-            if (!routeOffsets.TryGetValue(proc.Key, out var routeIdx)) continue;
-            var targetIdx = scenarioRouteIndex + routeIdx;
-            Debug.Log($"[DataManager] {proc.Key} - 목표 route 인덱스: {targetIdx} (시나리오 routeId: {scenarioRouteIndex})");
-            routes[targetIdx].isCompletePoint = true;
+            // CompleteCondition이 POINT인 절차만 처리
+            if (proc.completeCondition != CompleteCondition.Point)
+                continue;
+
+            // skipAircraftPosition이 "NONE"이 아니고 값이 있으면
+            if (!string.IsNullOrEmpty(proc.skipAircraftPosition) &&
+                proc.skipAircraftPosition != "NONE")
+            {
+                // 숫자로 파싱 시도 (음수 값도 가능)
+                if (int.TryParse(proc.skipAircraftPosition, out int offset))
+                {
+                    // 목표 route 인덱스 계산 (StateManager와 동일한 계산 방식)
+                    int targetIdx = scenarioRouteIndex + offset;
+
+                    // 인덱스 범위 체크
+                    if (targetIdx >= 0 && targetIdx < routes.Count)
+                    {
+                        routes[targetIdx].isCompletePoint = true;
+                        Debug.Log($"[DataManager] {proc.stepName} (POINT) - 목표 route 인덱스: {targetIdx} " +
+                                  $"(시나리오 routeId: {scenarioRouteIndex}, offset: {offset})");
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[DataManager] {proc.stepName}의 목표 route 인덱스 {targetIdx}가 " +
+                                       $"범위를 벗어났습니다. (routes.Count: {routes.Count})");
+                    }
+                }
+            }
         }
     }
     

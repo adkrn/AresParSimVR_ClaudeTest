@@ -24,6 +24,7 @@ public class PlayCharacter : MonoBehaviour
     [SerializeField] private Transform landingPoint;
     [SerializeField] private Transform goalPoint;
     [SerializeField] private GameObject cloud;
+    [SerializeField] private GameObject airPlaneGround;
     
     [SerializeField] private StateManager_New _stateManagerInspector;
     [SerializeField] private CameraController _cameraInspector;
@@ -40,6 +41,8 @@ public class PlayCharacter : MonoBehaviour
     [Header("낙하산 관련")] 
     [SerializeField] private GameObject pullCordHand;
     [SerializeField] private TriggerListener pullCordCol;
+
+    [SerializeField] private SimpleGroundingControl groundingControl;
     
     [ShowConst("중력 및 항력 설정")]
     private const float Gravity = 9.80665f; // 중력 가속도
@@ -68,6 +71,7 @@ public class PlayCharacter : MonoBehaviour
     
     private float startFallTime;
     private Vector3 startFallPos;
+    private bool isLanding = false;
 
     private void Start()
     {
@@ -77,6 +81,7 @@ public class PlayCharacter : MonoBehaviour
         // Inspector에서 할당된 값 사용, 없으면 FindAnyObjectByType 사용
         _stateManager = _stateManagerInspector ? _stateManagerInspector : FindAnyObjectByType<StateManager_New>();
         _camera = _cameraInspector ? _cameraInspector : FindAnyObjectByType<CameraController>();
+        //groundingControl = FindAnyObjectByType<SimpleGroundingControl>();
         
         StateManager.OnInit += Init;
     }
@@ -154,20 +159,28 @@ public class PlayCharacter : MonoBehaviour
         
         // 베이스 캠프 위로 이동.
         transform.parent = sceneRoot;
-        transform.position = new Vector3(landingPoint.position.x, transform.position.y, landingPoint.position.z);
-        transform.eulerAngles = new Vector3(0, 180, 0);
+        //transform.position = new Vector3(landingPoint.position.x, transform.position.y, landingPoint.position.z);
+        //transform.eulerAngles = new Vector3(0, 180, 0);
         cloud.transform.parent = sceneRoot;
         
         paraCtrl.JumpStart();
         
         startFallPos = transform.position;
         startFallTime = Time.time;
-        
+
+        _stateManager.isJump = true;
+        //airPlaneGround.layer = 0;
+        //groundingControl.DisableImmediate();
+
         // 점프 했을때 ParaCtrl의 중력 켜주기
-        // paraCtrl.rb.useGravity = true;
+        //paraCtrl.rb.useGravity = true;
         //_updateAction += FallTick;
         //_updateAction += EmergencyO2Mask;
         //_fallDistance = GetFreeFallDistance;
+        _updateAction += () =>
+        {
+            ParticipantManager.Inst.SetMonitoringDataPlayerFlag(paraCtrl.isPara, paraCtrl.isSubPara, isLanding);
+        };
     }
     
     private void FallTick()
@@ -411,11 +424,14 @@ public class PlayCharacter : MonoBehaviour
     private void OnGround()
     {
         Debug.Log($"땅과 충돌했습니다");
+        //groundingControl.SetGroundingEnabled(true);
+        isLanding = true;
         
         // 낙하산 컨트롤러 초기화
         paraCtrl.rb.useGravity = false;
         paraCtrl.rb.isKinematic = true;
         paraCtrl.isJumpStart = false;
+        paraCtrl.isPara = false;
         
         // 낙하산 비활성화
         jumperParachute.SetActive(false);
@@ -436,7 +452,12 @@ public class PlayCharacter : MonoBehaviour
         {
             // AresHardwareService.Inst.SetEvent(AresEvent.Landed);
             OnGroundCollision?.Invoke();
+            _updateAction = null;
+            ParticipantManager.Inst.SetMonitoringDataPlayerFlag(paraCtrl.isPara, paraCtrl.isSubPara, isLanding);
         }));
+        sfx.clip = audioClips[4];
+        sfx.loop = false;
+        sfx.Play();
         Debug.Log("땅에 도착했습니다.");
     }
 

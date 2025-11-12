@@ -29,6 +29,9 @@ public class WearingSet : MonoBehaviour
 {
     [SerializeField] private List<WearingGroup> groups;
     
+    public AudioSource sfx;
+    [SerializeField] private AudioClip[] audioClips;
+    
     void Awake()
     {
         // 모든 트리거에 TriggerListener 부착 & 이벤트 연결
@@ -66,6 +69,11 @@ public class WearingSet : MonoBehaviour
 
     void Equip(Item itemType)
     {
+        if (itemType == Item.None)
+        {
+            Debug.LogError("아이템 착용 절차가 아닌데 착용하는 매서드가 실패 이벤트에 등록되있음.");
+            return;
+        }
         var g = FindGroup(itemType);
         if (g == null) return;
 
@@ -76,6 +84,32 @@ public class WearingSet : MonoBehaviour
         // 2) 대기 오브젝트·콜라이더 비활성화
         if (g.wearingObj)  g.wearingObj.SetActive(false);
         if (g.triggerCol)  g.triggerCol.enabled = false;
+
+        switch (itemType)
+        {
+            case Item.Altimeter:
+            {
+                sfx.clip = audioClips[0];
+                break;
+            }
+            case Item.Helmet:
+            {
+                sfx.clip = audioClips[1];
+                break;
+            }
+            case Item.Hook:
+            {
+                sfx.clip = audioClips[2];
+                break;
+            }
+            case Item.Mask:
+            {
+                Debug.Log("마스크 착용 하는 소리 재생");
+                break;
+            }
+        }
+        
+        sfx.Play();
         
         Debug.Log($"[WearingSet] {itemType} 착용 완료");
     }

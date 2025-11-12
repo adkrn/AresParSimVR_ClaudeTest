@@ -18,7 +18,6 @@ namespace Oculus.Movement.AnimationRigging
     /// Retargeting class that inherits from OVRUnityHumanoidSkeletonRetargeter and provides
     /// functions that work with animation rigging.
     /// </summary>
-    [DefaultExecutionOrder(220)]
     public partial class RetargetingLayer : OVRUnityHumanoidSkeletonRetargeter,
         IOVRSkeletonProcessorAggregator
     {
@@ -600,7 +599,13 @@ namespace Oculus.Movement.AnimationRigging
             // The character needs to forced into a rest pose. Disable any transforms above the hips.
             if (offsetRecomputedThisFrame)
             {
-                ResetBoneTransformationsHipsUpwards(AnimatorTargetSkeleton.GetBoneTransform(HumanBodyBones.Hips));
+                var hipsBone = AnimatorTargetSkeleton.GetBoneTransform(HumanBodyBones.Hips);
+                if (hipsBone == null)
+                {
+                    Debug.LogWarning($"[RetargetingLayer] Hips bone not found on {gameObject.name}. " +
+                        "Please ensure the Avatar is configured as Humanoid with Hips bone mapped.");
+                }
+                ResetBoneTransformationsHipsUpwards(hipsBone);
             }
             RecomputeSkeletalOffsetsIfNecessary();
             if (offsetRecomputedThisFrame)

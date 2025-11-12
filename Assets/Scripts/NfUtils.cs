@@ -98,16 +98,14 @@ public static class FileUtils
     /// <returns>재생할 오디오</returns>
     public static AudioClip GetVoice(string voiceName)
     {
-        var voiceStr = voiceName + ".mp3";
-
         // Resources 폴더에서 AudioClip 로드
-        // Resources.Load는 Assets/Resources/ 폴더를 기준으로 함
-        string resourcePath = "Voices/" + voiceStr;
+        // Resources.Load는 Assets/Resources/ 폴더를 기준으로 하며, 확장자는 제외해야 함
+        string resourcePath = "Voices/" + voiceName;
         AudioClip audioClip = Resources.Load<AudioClip>(resourcePath);
 
         if (audioClip != null)
         {
-            Debug.Log($"[NfUtils] Successfully playing audio: {voiceStr}");
+            Debug.Log($"[NfUtils] Successfully playing audio: {voiceName}");
             return audioClip;
         }
         else

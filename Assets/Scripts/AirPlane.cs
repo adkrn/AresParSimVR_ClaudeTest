@@ -20,6 +20,7 @@ public class AirPlane : MonoBehaviour
     [SerializeField] private Transform door02;
     [SerializeField] private float doorOpen01_Angle = -22.0f;
     [SerializeField] private float doorOpen02_Angle = -24.0f;
+    [SerializeField] private LayerMask airPlaneLayer;
     public event Action DoorOpenCompleted;
     public event Action<int> OnRoutePointReached;  // Route 포인트 도달 이벤트
     public static event Action OnAirPlaneReady;  // 비행기 초기화 완료 이벤트
@@ -62,6 +63,11 @@ public class AirPlane : MonoBehaviour
         // 기본 원형 회전 대신 route 이동을 위해 주석처리
         // _updateAction += RotAround;
         _updateAction += PropellerAction;
+        Transform plane = transform.GetChild(0);
+        _updateAction += () =>
+        {
+            ParticipantManager.Inst.SetMonitoringDataPlanePos(transform.position, plane.eulerAngles.y);
+        };
     }
 
     private void Init()
@@ -69,6 +75,10 @@ public class AirPlane : MonoBehaviour
         // 비행기 도착 고도 가져와서 설정
         // 비행기 이륙 후 도착 고도에서 낙하를 시작함.
         jumpHeight = DataManager.Inst.scenario.endOperationalAltidute;
+        
+        // 노트 -> m/s 변환값
+        float knotToMps = 1852f / 3600f;
+        moveSpeed = DataManager.Inst.scenario.allowedSpeedKnots * knotToMps;
         
         // Route 포인트가 설정될 때까지 임시 위치 (화면 밖)
         // SetRoutePoints가 호출되면 0번 포인트로 이동함
@@ -89,7 +99,7 @@ public class AirPlane : MonoBehaviour
         isWaitingForSignal = true;
     }
 
-    private void Update()
+    private void FixedUpdate()
     {
         _updateAction?.Invoke();
     }
@@ -224,14 +234,13 @@ public class AirPlane : MonoBehaviour
             OnRoutePointReached?.Invoke(reachedIndex);
 
             // 대기 상태로 전환하지 않음 - StateManager가 결정하도록 함
-            // isWaitingForSignal = true;
             Debug.Log($"[AirPlane] {reachedIndex}번 포인트 도달 완료.");
             
             // 다음 포인트 인덱스는 증가시키지만 이동은 하지 않음
             currentRouteIndex = targetRouteIndex;
             targetRouteIndex++;
             
-            if (currentRouteIndex >= routePoints.Count)
+            if (targetRouteIndex >= routePoints.Count)
             {
                 // 모든 포인트 완료 - 다시 0번부터 설정 (하지만 이동은 대기)
                 currentRouteIndex = 0;
@@ -284,12 +293,11 @@ public class AirPlane : MonoBehaviour
     /// <param name="targetIndex">목표 포인트 인덱스</param>
     public void MoveToPointImmediately(int targetIndex)
     {
-        if (routePoints == null || targetIndex >= routePoints.Count || targetIndex < 0)
+        if (routePoints == null || targetIndex >= routePoints.Count || targetIndex < currentRouteIndex)
         {
             Debug.LogError($"[AirPlane] 잘못된 포인트 인덱스: {targetIndex}");
             return;
         }
-        //isWaitingForSignal = true;
         
         // 목표 포인트로 즉시 이동
         Transform targetPoint = routePoints[targetIndex];
@@ -301,9 +309,8 @@ public class AirPlane : MonoBehaviour
         // 현재 위치 다음 목표 지점으로 업데이트
         currentRouteIndex = targetIndex;
         targetRouteIndex = currentRouteIndex + 1;
-        
         // 포인트 도달 이벤트 발생
-        OnRoutePointReached?.Invoke(targetIndex);
+        //OnRoutePointReached?.Invoke(targetIndex);
     }
     
     public void DoorOpen()
@@ -337,17 +344,17 @@ public class AirPlane : MonoBehaviour
     /// <summary>
     /// 문여는 애니메이션 스킵
     /// </summary>
-    // private void DoorOpenSkip()
-    // {
-    //     Debug.Log("문 열리는 애니메이션 스킵처리");
-    //     door01.localEulerAngles = _doorOpen01Vector;
-    //     door02.localEulerAngles = _doorOpen02Vector;
-    //     _lerpTime01 = 0.0f;
-    //     _lerpTime02 = 0.0f;
-    //     audioDoorOpen.Stop();
-    //     _updateAction -= DoorOpenAction;
-    //     //DoorOpenCompleted?.Invoke();
-    // }
+    public void DoorOpenSkip()
+    {
+        Debug.Log("문 열리는 애니메이션 스킵처리");
+        door01.localEulerAngles = _doorOpen01Vector;
+        door02.localEulerAngles = _doorOpen02Vector;
+        _lerpTime01 = 0.0f;
+        _lerpTime02 = 0.0f;
+        audioDoorOpen.Stop();
+        _updateAction -= DoorOpenAction;
+        //DoorOpenCompleted?.Invoke();
+    }
     
     private void CloudsHide()
     {

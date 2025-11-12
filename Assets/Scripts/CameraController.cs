@@ -102,13 +102,15 @@ public class CameraController : MonoBehaviour
     /// </summary>
     private void CamNoiseAction()
     {
-        //Debug.Log("일반캠노이즈");
+        return;
+        //Debug.Log("비행기캠노이즈");
         camPosNoise = Mathf.PerlinNoise(-1, Time.time * 7.0f);
         transform.localPosition = mainCamPosition + new Vector3(0, camPosNoise / 8.0f, 0);
     }
     
     private void JumpNoiseAction()
     {
+        return;
         //Debug.Log("점프캠노이즈");
         camPosNoise = Mathf.PerlinNoise(-1, Time.time * 10.0f);
         transform.localPosition = mainCamPosition + new Vector3(0, camPosNoise / 8.0f, 0);
@@ -130,5 +132,19 @@ public class CameraController : MonoBehaviour
         rigRoot.SetParent(camPoints[_index]);
         rigRoot.localPosition = Vector3.zero;
         rigRoot.localRotation = Quaternion.identity;
+    }
+
+    /// <summary>
+    /// 문(Exit) 위치 Transform 반환
+    /// </summary>
+    public Transform GetExitPoint()
+    {
+        int exitIndex = (int)CamPos.Exit; // = 1
+        if (exitIndex >= 0 && exitIndex < camPoints.Length)
+        {
+            return camPoints[exitIndex];
+        }
+        Debug.LogWarning("[CameraController] Exit point를 찾을 수 없습니다.");
+        return null;
     }
 }

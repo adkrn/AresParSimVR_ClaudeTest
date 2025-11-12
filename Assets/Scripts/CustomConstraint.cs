@@ -9,6 +9,8 @@ public class CustomConstraint : MonoBehaviour
     Vector3 _firstDistance;
     private Vector3 _thisRot;
     
+    [SerializeField] private Transform pivotRot;
+    
     [SerializeField] private Vector3 _offsetRot = Vector3.zero;
     private void Start()
     {
@@ -18,8 +20,7 @@ public class CustomConstraint : MonoBehaviour
 
     private void Update()
     {
-        transform.position = target.position + _firstDistance;
-        var targetRot = target.rotation.eulerAngles;
-        transform.eulerAngles = new Vector3(_thisRot.x, targetRot.y, _thisRot.z) + _offsetRot;
+        transform.position = target.position;
+        transform.localRotation = pivotRot.localRotation;
     }
 }
