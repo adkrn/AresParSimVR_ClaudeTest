@@ -67,7 +67,7 @@ public class AresHardwareParagliderController : MonoBehaviour
     [SerializeField] private float _procLineTwistYawSpeed = 60f;
 
     [Tooltip("산줄꼬임 하드웨어 YawSpeed (ARES 단위, 기본 1500 = 평상시 max abs(turnInput*1500))")]
-    [SerializeField] private float _lineTwistHardwareYawSpeed = 1500f;
+    [SerializeField] private float _lineTwistHardwareYawSpeed = 5000f;
 
     [Tooltip("산줄꼬임 sinkSpeed 가산값 (m/s). 자유낙하 속도 도달 목표 — D4. ★ Begin 호출 시 인자로 채워짐. 기본 0 (필드 toggle).")]
     [SerializeField] private float _procDropSpeedBonus = 0f;
