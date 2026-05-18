@@ -24,7 +24,10 @@ public class StartManager : MonoBehaviour
 
     private void Start()
     {
-        StateManager.OnInit += Init;
+        if (fadeCtrl == null)
+        {
+            fadeCtrl = FindAnyObjectByType<FadeController>();
+        }
         fadeCtrl.Init(FadeDir.In, SendThisState);
     }
 
@@ -59,7 +62,6 @@ public class StartManager : MonoBehaviour
     private void ShowBriefing()
     {
         Debug.Log("Briefing");
-        StateManager.InstructionUIShown += infoUI.InitUI;
         
         // 비디오 녹화
         //FFMPEGRecorder.Inst.StartRecording();
@@ -72,9 +74,6 @@ public class StartManager : MonoBehaviour
     [ProcedureHandler("MissionBrief", ExecMode.SkipOnly)]
     private void OpenMainScene()
     {
-        var stateManager = FindAnyObjectByType<StateManager>();
-        stateManager.OnSuccess();
-        stateManager.OnProcedureComplete();
         
         SceneManager.LoadScene(mainScene);
     }

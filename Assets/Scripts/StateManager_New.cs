@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Unity.VisualScripting;
+using UnityEditor.Rendering.Universal;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -20,7 +21,10 @@ public class StateManager_New : MonoBehaviour
     private PlayCharacter _character;
     private CameraController _cameraController;
     private AirPlane _airPlane;
-    private WearingSet _wearingSet;
+    [SerializeField] private WearingSet _wearingSet;
+    [SerializeField] private DisplayCamCtrl camCtrl;
+    public VolumeCtrl volumeCtrl;
+    public LightCtrl lightCtrl;
     private WS_DB_Client _wsDBClient;
     private TrainingState _trainingState;
     
@@ -31,27 +35,73 @@ public class StateManager_New : MonoBehaviour
     private TimeLine _currentTimeline;
     private Procedure _currentProcedure;
     private Coroutine _timeRoutine;
+    private Coroutine _jumpRoutine;
     private bool _isSuccess = false;
 
     public bool isJump = false;
+    [SerializeField] private FadeController fadeCtrl;
+
+    public RiserGrabFollower leftFollower;
+    public RiserGrabFollower rightFollower;
+
+    private string _activeContingencyId = "";
+    public string ActiveContingencyId => _activeContingencyId;   // AresHardwareParagliderController 옵션 C / F12 일반화에서 조회
+    private Contingency _pendingContingency = null;
+    private Coroutine _contingencyDurationCoroutine = null;
+    private Coroutine _contingencyQueueExpireCoroutine = null;
+
+    // 교관 송신 동적 malfunctionId — case PullSubCord 진입 시 1회성 소비
+    // CSV 캐싱 객체(_currentProcedure) mutation 회피 위해 별도 필드로 격리
+    private string _pendingMalfunctionId = "";
+
+    // 우발상황 위임 결과 — CompleteContingency 가 세팅, WaitProcedureCompleteFromContingency 가 OnSuccess 판단에 사용
+    private bool _lastContingencyResult = false;
 
     private void Awake()
     {
         if (Inst == null)
         {
             Inst = this;
-            DontDestroyOnLoad(gameObject);
         }
-        else
-        {
-            Destroy(gameObject);
-        }
+
+        AirPlane.OnAirPlaneReady += HandleAirPlaneReady;
+    }
+
+    private void OnDestroy()
+    {
+        AirPlane.OnAirPlaneReady -= HandleAirPlaneReady;
     }
 
     private void Start()
     {
         _wsDBClient = FindAnyObjectByType<WS_DB_Client>();
+        camCtrl = FindAnyObjectByType<DisplayCamCtrl>();
+        volumeCtrl = FindAnyObjectByType<VolumeCtrl>();
+        lightCtrl = FindAnyObjectByType<LightCtrl>();
+        fadeCtrl = FindAnyObjectByType<FadeController>(FindObjectsInactive.Include);
         _procedureIndex = 0;
+    }
+
+    /// <summary>
+    /// AirPlane 초기화 완료 시 호출. 정상 흐름이면 DoorOpen 시작(햇빛 애니메이션), 스킵 펜딩이면 문 즉시 열림(완료 상태).
+    /// 스킵 흐름에서 SetProcedure가 ThreeMinutes 등 어두운 preset을 다시 적용하는 문제는
+    /// ExecuteSkip / CompleteSkipAfterSceneLoad 끝에서 OpenDoorEnd로 다시 한 번 강제 적용해 처리한다.
+    /// </summary>
+    private void HandleAirPlaneReady()
+    {
+        if (_airPlane == null) _airPlane = FindAnyObjectByType<AirPlane>();
+        if (_airPlane == null) return;
+
+        if (_isSkipPending)
+        {
+            Debug.Log("[StateManager] 스킵 중 - 문 즉시 열림 처리");
+            _airPlane.OpenDoorImmediately();
+        }
+        else
+        {
+            Debug.Log("[StateManager] 정상 흐름 - DoorOpen 시작");
+            _airPlane.DoorOpen();
+        }
     }
     
     public async void ReceiveTrainingState(TrainingState state)
@@ -76,6 +126,8 @@ public class StateManager_New : MonoBehaviour
                     // 데이터가 준비되었으므로 Start 상태로 응답
                     _wsDBClient.CurParticipantData.trainingState = TrainingState.Start;
                     AresHardwareService.Inst.SetEvent(AresEvent.SitDown);
+                    // 영상 녹화 시작
+                    FFMPEGRecorder.Inst?.StartRecording();
                 }
                 else if (DataManager.Inst.IsLoadingData)
                 {
@@ -116,8 +168,11 @@ public class StateManager_New : MonoBehaviour
                 }
                 _wsDBClient.CurParticipantData.trainingState = TrainingState.End;
                 AresHardwareService.Inst.SetEvent(AresEvent.None);
+                // 영상 녹화 종료 → CaptureLoop 정리 후 UploadVideo 자동 호출
+                FFMPEGRecorder.Inst?.StopRecording();
                 ResetAllStates();
-                LoadLobbyIfNeeded(); // 저장이 끝난 뒤 씬 전환
+                //LoadLobbyIfNeeded(); // 저장이 끝난 뒤 씬 전환
+                SceneLoadManager.Inst.LoadLobbyScene();
                 break;
             }
         }
@@ -150,8 +205,11 @@ public class StateManager_New : MonoBehaviour
     public void ForceMainParachute()
     {
         if(_currentProcedure.stepName != "FreeFall") return;
-        
+
         _character.Deploy();
+
+        leftFollower.OnGrabBegin();
+        rightFollower.OnGrabBegin();
     }
 
     /// <summary>
@@ -160,7 +218,10 @@ public class StateManager_New : MonoBehaviour
     public void ForceTrainingEnd()
     {
         _trainingState = TrainingState.End;
-        
+
+        // 영상 녹화 종료 → CaptureLoop 정리 후 UploadVideo 자동 호출
+        FFMPEGRecorder.Inst?.StopRecording();
+
         ResetAllStates();
         AresHardwareService.Inst.SetEvent(AresEvent.None);
         LoadLobbyIfNeeded();
@@ -219,7 +280,7 @@ public class StateManager_New : MonoBehaviour
         }
         
         Debug.Log($"[StateManager] {cameraPlacers.Length}개의 CameraFrontPlacer를 원래 부모로 복귀 후 {sceneName} 씬 로드");
-        SceneManager.LoadScene(sceneName);
+        SceneLoadManager.Inst.LoadMainScene(TakeOffComplete);
     }
     
     /// <summary>
@@ -296,23 +357,36 @@ public class StateManager_New : MonoBehaviour
             StopCoroutine(_timeRoutine);
             _timeRoutine = null;
         }
-        
+        if (_jumpRoutine != null)
+        {
+            StopCoroutine(_jumpRoutine);
+            _jumpRoutine = null;
+        }
+
+        // 이전 절차의 stale MoveTo/MoveToAndWait 명령이 자연 도달 시 새 절차를 잘못 완료시키는 걸 방지
+        if (_airPlane == null) _airPlane = FindAnyObjectByType<AirPlane>();
+        _airPlane?.ClearCommandQueue();
+
         // TimeLimitUI 이벤트 정리
         UIManager.Inst.CleanTimeUIEvent();
     }
     
-    public void ProcessProcedureRequest(string procedureId)
+    public void ProcessProcedureRequest(string procedureId, string malfunctionId = "")
     {
+        // 교관 송신 동적 ID 저장 — case PullSubCord 진입 시 소비
+        _pendingMalfunctionId = malfunctionId ?? "";
+        Debug.Log("malFuncID : " + _pendingMalfunctionId);
+
         // 절차 인덱스 확인
         int currentIndex = DataManager.Inst.GetProcedureIdx(_currentProcedure.id);
         int targetIndex = DataManager.Inst.GetProcedureIdx(procedureId);
-        
+
         if (targetIndex == -1)
         {
             Debug.LogError($"[StateManager] 절차 ID를 찾을 수 없습니다: {procedureId}");
             return;
         }
-        
+
         Debug.Log($"[StateManager] 절차 진행 시작 - 현재:{_currentProcedure.id}, 목표:{procedureId}");
         
         // 현재 신호받기 전 절차가 이륙이면 비행기 출발
@@ -339,7 +413,7 @@ public class StateManager_New : MonoBehaviour
     
     // 클래스 멤버 변수에 추가
     private int _pendingSkipTargetIndex = -1;  // 스킵 목표 인덱스
-    private bool _isSkipPending = false;       // 스킵 대기 중 플래그
+    [SerializeField] private bool _isSkipPending = false;       // 스킵 대기 중 플래그
     
     /// <summary>
     /// 절차 스킵 기능
@@ -351,40 +425,93 @@ public class StateManager_New : MonoBehaviour
     {
         UIManager.Inst.HideAllInstructionUI();
         var targetProcedure = DataManager.Inst.GetProcedure(targetProcedureId);
+        _isSkipPending = true;
 
-        // 스킵 전에 씬 전환이 필요한지 체크
+        // 비행기 명령 큐와 stale 핸들러를 즉시 정리.
+        // 진행 중이던 절차의 MoveTo가 자연 도달 시 새 절차를 잘못 완료 처리하는 것을 방지.
+        if (_airPlane == null) _airPlane = FindAnyObjectByType<AirPlane>();
+        _airPlane?.ClearCommandQueue();
+
+        // 진행 중이던 현재 절차의 essential action(ForceEquip/SkipSitDown 등)도 적용 +
+        // 평가 결과를 "스킵"으로 기록. (skippedProcedures가 startIdx 제외하므로 별도 처리)
+        if (_currentProcedure != null && _currentProcedure.completeCondition != CompleteCondition.None)
+        {
+            Debug.Log($"<color=cyan>[StateManager] 진행 중이던 절차({_currentProcedure.stepName}) 스킵 처리</color>");
+            ExecuteEssentialActions(new List<Procedure> { _currentProcedure });
+        }
+
+        //스킵 전에 씬 전환이 필요한지 체크
         if (IsSceneChangeRequired(targetIndex))
         {
             Debug.Log($"<color=yellow>[StateManager] 씬 전환 필요 - 스킵 정보 저장</color>");
 
             // 스킵 정보 저장
             _pendingSkipTargetIndex = targetIndex;
-            _isSkipPending = true;
 
             // TakeOff 실행 (씬 전환)
             TakeOff();
             return;
         }
-        
+
         Debug.Log($"<color=cyan>[StateManager] 스킵 시작: {_currentProcedure?.stepName} → {targetProcedure?.stepName}</color>");
-        
-        // 1. 중간 절차들 가져오기
+
+        // 1. 중간 절차들의 필수 동작(장비/자세/평가)만 실행
         var skippedProcedures = DataManager.Inst.GetProceduresBetween(currentIndex, targetIndex);
-        // 2. 필수 동작들 실행
         ExecuteEssentialActions(skippedProcedures);
-        // 3. 목표 절차로 인덱스 이동
+
+        // 2. 비행기 위치를 target 절차의 시작 지점으로 1회 동기화 + 출발
+        SyncAirplaneForSkip(targetProcedureId);
+        if (_airPlane != null) AirPlaneDeparture();
+
+        // 3. 스킵 완료 → 플래그 해제 후 target 진입
+        if (_pendingContingency != null)
+        {
+            var pending = _pendingContingency;
+            _pendingContingency = null;
+            if (_contingencyQueueExpireCoroutine != null)
+            {
+                StopCoroutine(_contingencyQueueExpireCoroutine);
+                _contingencyQueueExpireCoroutine = null;
+            }
+            Debug.Log($"[StateManager] 큐잉 우발상황({pending.id}) 적용 (ExecuteSkip)");
+            _isSkipPending = false;
+            ApplyContingency(pending);
+        }
+        else
+        {
+            _isSkipPending = false;
+        }
         _procedureIndex = targetIndex;
-        // 4. 목표 절차 시작
         SetProcedure(targetIndex);
+
+        // 스킵 = 절차 완료 상태로 점프. 햇빛은 항상 OpenDoorEnd(0). ThreeMinutes preset(-10)이 덮어쓰는 것 방지.
+        volumeCtrl?.ApplyPreset("OpenDoorEnd", 0f);
     }
 
     private bool IsSceneChangeRequired(int targetIndex)
     {
         string currentScene = SceneManager.GetActiveScene().name;
 
-        // Lobby 씬이 아니면 전환 불필요
-        if (currentScene != lobbySceneName)
+        // Main 씬 로드 여부 검사 (multi-scene loading: AppBootstrap이 active이고 Lobby/Main이 additive로 로드되는 구조 대응)
+        bool mainSceneLoaded = false;
+        for (int i = 0; i < SceneManager.sceneCount; i++)
+        {
+            if (SceneManager.GetSceneAt(i).name == mainSceneName)
+            {
+                mainSceneLoaded = true;
+                break;
+            }
+        }
+
+        // [진단] 씬 비교 정합성 체크용 로그
+        Debug.Log($"[IsSceneChangeRequired] currentScene='{currentScene}' (len={currentScene?.Length}), lobbySceneName='{lobbySceneName}', mainSceneName='{mainSceneName}', mainSceneLoaded={mainSceneLoaded}, targetIndex={targetIndex}");
+
+        // Main 씬이 이미 로드돼 있으면 전환 불필요
+        if (mainSceneLoaded)
+        {
+            Debug.Log($"[IsSceneChangeRequired] Main 씬 이미 로드됨 → 씬 전환 불필요(false 반환)");
             return false;
+        }
 
         int _takeOffProcedureIndex = 0;
 
@@ -429,7 +556,9 @@ public class StateManager_New : MonoBehaviour
         // InstructionUI를 표시한다.
         UIManager.Inst.ShowInstructionUI(_currentProcedure);
         if(_character== null) _character = FindAnyObjectByType<PlayCharacter>();
-
+        
+        camCtrl.SetPosition(_currentProcedure.stepName);
+        volumeCtrl.ApplyPreset(_currentProcedure.stepName);
        CompleteTriggerAction();
     }
     
@@ -513,11 +642,24 @@ public class StateManager_New : MonoBehaviour
             }
             case CompleteCondition.Point:
             {
-                // Route 포인트 도달 시 완료되는 절차
-                if(_airPlane == null) _airPlane = FindAnyObjectByType<AirPlane>();
-                if (_airPlane.GetWaitingMode()) PointProcedureComplete(_airPlane.GetCurrentRouteIndex());
-                else _airPlane.OnRoutePointReached += PointProcedureComplete;
-                
+                // ========================================================
+                // [리팩토링] 기존 이벤트 방식 → 명령 큐 방식으로 변경
+                // ========================================================
+                // 기존 방식:
+                //   - PointProcedureComplete 이벤트 핸들러 등록
+                //   - 중복 등록 가능, 해제 타이밍 복잡
+                //
+                // 새로운 방식:
+                //   - StartPointProcedure 호출
+                //   - 명령 객체 생성 → AirPlane 큐에 추가
+                //   - 완료 시 콜백 자동 호출
+                // ========================================================
+
+                if (_currentProcedure.stepName == "StandUp")
+                {
+                    StandUp();
+                }
+                StartPointProcedure();
                 break;
             }
             case CompleteCondition.Item:
@@ -538,7 +680,7 @@ public class StateManager_New : MonoBehaviour
                 TakeOff();
                 break;
             }
-            case CompleteCondition.Stand:
+            case CompleteCondition.StandUp:
             {
                 AresHardwareService.Inst.SetEvent(AresEvent.None);
                 _cameraController = FindAnyObjectByType<CameraController>();
@@ -558,10 +700,40 @@ public class StateManager_New : MonoBehaviour
                 _character.AddPullCordTrigger();
                 break;
             }
+            case CompleteCondition.EndAltitude:
+            {
+                // D1/D3 — STANDARD FreeFall 자동 종료. Deploy 미호출, 절차 완료 신호만 (메인 펴기는 후속 절차/Landing 가드에 위임)
+                if (_character == null)
+                {
+                    Debug.LogError("[StateManager] EndAltitude — _character null, 즉시 완료");
+                    OnProcedureComplete();
+                    break;
+                }
+                int targetAlt = DataManager.Inst.scenario.autoActiveAltitude;
+                Debug.Log($"[StateManager] EndAltitude — scenario.autoActiveAltitude={targetAlt}m, Deploy 미호출, 절차 완료 신호만 등록");
+                _character.AddEndAltitudeTrigger(targetAlt, () =>
+                {
+                    OnSuccess();
+                    OnProcedureComplete();
+                });
+                break;
+            }
             case CompleteCondition.Landing:
             {
+                // D7 — InAir(Landing) 진입 시 메인 미전개면 자동 Deploy.
+                //   정상 시나리오: STANDARD EndAltitude 후 TotalMalfunction 미수신 → 메인 펴기 위임 받음.
+                //   HAHO/HALO: 이미 PullCord 단계에서 Deploy → isParaDeployed=true → noop.
+                //   MainParaOff 우발상황: MarkParaDeployedSuppressed 또는 DeploySubPara 가 isParaDeployed=true → noop.
+                if (_character != null && !_character.isParaDeployed)
+                {
+                    Debug.Log("[StateManager] Landing 진입 — 메인 미전개 상태 감지, 자동 Deploy 실행");
+                    _character.Deploy();
+                }
+
                 _character.OnGroundCollision += () =>
                 {
+                    leftFollower.OnGrabEnd();
+                    rightFollower.OnGrabEnd();
                     OnSuccess();
                     OnProcedureComplete();
                     UIManager.Inst.AddAfterAction(() =>
@@ -571,7 +743,95 @@ public class StateManager_New : MonoBehaviour
                 };
                 break;
             }
+            case CompleteCondition.PullSubCord:
+            {
+                // paraCtrl null guard
+                if (_character == null || _character.paraCtrl == null)
+                {
+                    Debug.LogError("[StateManager] PullSubCord — paraCtrl null, 즉시 종료");
+                    OnProcedureComplete();
+                    break;
+                }
+
+                // TotalMalfunction 일반화 dispatch — 교관 송신 malfunctionId 로 우발상황 위임
+                // 1회성 소비 (잔재 leak 방지)
+                string malfunctionId = _pendingMalfunctionId;
+                _pendingMalfunctionId = "";
+
+                // (A) malfunctionId 없음 = 정상 시나리오 (D4) — 메인 펴기 결정권자.
+                //     STANDARD: EndAltitude 직후 절차로 메인 전개 위임 받은 정상 경로.
+                if (string.IsNullOrEmpty(malfunctionId))
+                {
+                    Debug.Log("[StateManager] PullSubCord — malfunctionId 없음(정상), 메인 Deploy 후 절차 완료");
+                    if (!_character.isParaDeployed) _character.Deploy();
+                    OnSuccess();
+                    OnProcedureComplete();
+                    break;
+                }
+
+                // (B) malfunctionId 있음 — Contingency 매핑
+                Contingency mapped = DataManager.Inst.GetContingency(malfunctionId);
+                if (mapped == null)
+                {
+                    Debug.LogError($"[StateManager] PullSubCord — malfunctionId='{malfunctionId}' 매핑 실패, 안전 fallback 으로 메인 Deploy");
+                    if (!_character.isParaDeployed) _character.Deploy();
+                    OnProcedureComplete();
+                    break;
+                }
+
+                // (C) action 분기 (D5, D6) — 전체 jumpType 공통
+                bool isMainOff = mapped.action == "MainParaOff";
+                if (!isMainOff)
+                {
+                    Debug.Log($"[StateManager] PullSubCord — action='{mapped.action}' (≠MainParaOff), 메인 Deploy 후 ApplyContingency");
+                    if (!_character.isParaDeployed) _character.Deploy();
+                }
+                else
+                {
+                    Debug.Log($"[StateManager] PullSubCord — action=MainParaOff, 메인 미전개 의도. MarkParaDeployedSuppressed (Landing 가드 비활성)");
+                    _character.MarkParaDeployedSuppressed();
+                }
+
+                Debug.Log($"[StateManager] PullSubCord — malfunctionId={malfunctionId} → ApplyContingency 위임");
+
+                // 이전 절차/우발상황 결과 잔재 차단 — WaitProcedureCompleteFromContingency 가 _lastContingencyResult 로만 OnSuccess 판단
+                _isSuccess = false;
+                _lastContingencyResult = false;
+
+                // 우발상황 흐름 위임 — UI(ShowContingencyOverlay) / 효과(ApplyContingencyHardware) / 자동실패(WaitForContingencyDuration) 모두 ApplyContingency 가 처리
+                ApplyContingency(mapped);
+
+                // Sd2 — 절차 측 timeLimit 만료 시 자동 reserve 전개 (G_d-1 PlayMode 시나리오)
+                UIManager.Inst.AddFailAction(() =>
+                {
+                    Debug.Log("[StateManager] LineTwist failCondition.Time 발화 — 자동 실패 → reserve 자동 전개");
+                    _isSuccess = false;
+                    if (_timeRoutine != null) StopCoroutine(_timeRoutine);
+
+                    if (_character?.paraCtrl != null)
+                    {
+                        if (!_character.paraCtrl.isSubPara)
+                            _character.paraCtrl.DeploySubPara();
+                        _character.paraCtrl.EndLineTwistProcedure();
+                    }
+                    OnProcedureComplete();
+                });
+
+                // 우발상황 종료 시점에 절차도 완료 처리 (CompleteContingency 가 _activeContingencyId = "" 로 리셋)
+                _timeRoutine = StartCoroutine(WaitProcedureCompleteFromContingency());
+                break;
+            }
         }
+    }
+
+    private void StandUp()
+    {
+        AresHardwareService.Inst.SetEvent(AresEvent.None);
+        _cameraController = FindAnyObjectByType<CameraController>();
+        _cameraController.MoveToPoint(CamPos.InAirPlane);
+        _character = FindAnyObjectByType<PlayCharacter>();
+        _character?.Stand();
+        Debug.Log("<color=cyan>[StateManager] 서기");
     }
 
     /// <summary>
@@ -610,6 +870,28 @@ public class StateManager_New : MonoBehaviour
     }
 
     /// <summary>
+    /// 완료조건이 PullSubCord 일 때 Action — 우발상황 위임 흐름.
+    /// case PullSubCord 가 ApplyContingency(mapped) 호출 → _activeContingencyId 세팅됨.
+    /// CompleteContingency 가 성공/실패 양쪽 path 에서 _activeContingencyId = "" 로 리셋 →
+    /// 본 polling 종료 → 절차도 OnProcedureComplete.
+    /// 효과 종료(EndLineTwistProcedure) 와 결과 송신은 CompleteContingency 가 단일 책임.
+    /// </summary>
+    private IEnumerator WaitProcedureCompleteFromContingency()
+    {
+        // case PullSubCord 진입 시 ApplyContingency 가 _activeContingencyId 세팅 → CompleteContingency 가 "" 로 리셋
+        while (!string.IsNullOrEmpty(_activeContingencyId))
+        {
+            yield return null;
+        }
+
+        // 우발상황 결과를 절차 결과로 전파
+        if (_lastContingencyResult) OnSuccess();
+
+        Debug.Log($"[StateManager] WaitProcedureCompleteFromContingency 종료 — 결과={_lastContingencyResult}");
+        OnProcedureComplete();
+    }
+
+    /// <summary>
     /// 완료조건이 Item일때 Action
     /// 각 아이템에 따라서 진행할 절차를 설정하고, 완료 이벤트를 등록한다.
     /// </summary>
@@ -632,28 +914,26 @@ public class StateManager_New : MonoBehaviour
     /// </summary>
     public void TakeOff()
     {
+        lightCtrl.SetFog(new Color(0.773f,0.839f,0.896f,0.8f));
         // 이미 메인씬에 있는 경우
         if (SceneManager.GetActiveScene().name == mainSceneName)
         {
-            Debug.Log("[StateManager] 이미 메인씬에 있음. AirPlane 확인");
+            Debug.Log("[StateManager.TakeOff()] 메인씬 로드 됨. 비행기 확인");
             
             // AirPlane이 이미 존재하고 초기화되었는지 확인
             var airplane = FindAnyObjectByType<AirPlane>();
             if (airplane != null && airplane.GetCurrentRouteIndex() >= 0)
             {
                 // 이미 초기화 완료된 경우 바로 처리
-                Debug.Log("[StateManager] AirPlane이 이미 초기화됨. 바로 Point 체크 시작");
+                Debug.Log("[StateManager.TakeOff()] AirPlane이 이미 초기화됨. 바로 Point 체크 시작");
             }
             else
             {
                 // 아직 초기화되지 않은 경우 이벤트 대기
-                Debug.Log("[StateManager] AirPlane 초기화 대기");
-                AirPlane.OnAirPlaneReady += OnAirPlaneInitialized;
+                Debug.Log("[StateManager.TakeOff()] AirPlane 초기화 대기");
             }
             return;
         }
-        
-        SceneManager.sceneLoaded += TakeOffComplete;
         
         // 씬 전환 시작을 교관에게 알림
         if (_wsDBClient != null)
@@ -663,7 +943,7 @@ public class StateManager_New : MonoBehaviour
         }
         
         // 현재는 페이드 아웃 후 씬 넘기는걸로 처리
-        var fadeCtrl = FindAnyObjectByType<FadeController>(FindObjectsInactive.Include);
+        fadeCtrl = FindAnyObjectByType<FadeController>(FindObjectsInactive.Include);
         fadeCtrl.Init(FadeDir.Out, () =>
         {
             LoadSceneWithCleanup(mainSceneName);
@@ -674,10 +954,9 @@ public class StateManager_New : MonoBehaviour
     /// 비행기 이륙 완료 처리
     /// 메인씬이 로드가 완료되면 TakeOff를 완료처리한다.
     /// </summary>
-    private void TakeOffComplete(Scene scene, LoadSceneMode mode)
+    private void TakeOffComplete()
     {
         Debug.Log("비행기 이륙 완료");
-        SceneManager.sceneLoaded -= TakeOffComplete;
         
         // 씬 전환 완료를 교관에게 알림
         if (_wsDBClient != null)
@@ -695,14 +974,11 @@ public class StateManager_New : MonoBehaviour
             StartCoroutine(CompleteSkipAfterSceneLoad());
             return;
         }
-
         
         // TakeOff가 Point 타입인 경우 AirPlane 초기화 완료를 기다림
         if (_currentProcedure is { stepName: "TakeOff", completeCondition: CompleteCondition.Point })
         {
             Debug.Log("[StateManager] TakeOff Point 체크를 위해 AirPlane 초기화 대기");
-            AirPlane.OnAirPlaneReady += OnAirPlaneInitialized;
-            
             // 이미 초기화되었을 수도 있으므로 확인
             StartCoroutine(CheckAirPlaneReady());
         }
@@ -720,32 +996,43 @@ public class StateManager_New : MonoBehaviour
         // 오브젝트 초기화 대기
         yield return new WaitForSeconds(0.5f);
 
-        var targetProcedure = DataManager.Inst.GetProcedureList()[_pendingSkipTargetIndex];
+        int targetIndex = _pendingSkipTargetIndex;
+        var targetProcedure = DataManager.Inst.GetProcedureList()[targetIndex];
 
-        // 3. 스킵된 절차들의 필수 동작 실행 (장비 착용 등)
-        var skippedProcedures = DataManager.Inst.GetProceduresBetween(0, _pendingSkipTargetIndex);        
+        // 1. 중간 절차들의 필수 동작 실행
+        var skippedProcedures = DataManager.Inst.GetProceduresBetween(0, targetIndex);
         ExecuteEssentialActions(skippedProcedures);
 
-        // 4. 목표 절차로 이동
-        _procedureIndex = _pendingSkipTargetIndex;
-        SetProcedure(_pendingSkipTargetIndex);
+        // 2. 비행기 위치를 target 절차의 시작 지점으로 1회 동기화 + 출발
+        SyncAirplaneForSkip(targetProcedure.id);
+        if (_airPlane != null) AirPlaneDeparture();
 
-        // 5. 스킵 정보 초기화
+        // 3. 스킵 완료 → 플래그/펜딩 해제 후 target 진입
         _pendingSkipTargetIndex = -1;
-        _isSkipPending = false;
+        if (_pendingContingency != null)
+        {
+            var pending = _pendingContingency;
+            _pendingContingency = null;
+            if (_contingencyQueueExpireCoroutine != null)
+            {
+                StopCoroutine(_contingencyQueueExpireCoroutine);
+                _contingencyQueueExpireCoroutine = null;
+            }
+            Debug.Log($"[StateManager] 큐잉 우발상황({pending.id}) 적용 (CompleteSkipAfterSceneLoad)");
+            _isSkipPending = false;
+            ApplyContingency(pending);
+        }
+        else
+        {
+            _isSkipPending = false;
+        }
+        _procedureIndex = targetIndex;
+        SetProcedure(targetIndex);
+
+        // 스킵 = 절차 완료 상태로 점프. 햇빛은 항상 OpenDoorEnd(0). ThreeMinutes preset(-10)이 덮어쓰는 것 방지.
+        volumeCtrl?.ApplyPreset("OpenDoorEnd", 0f);
 
         Debug.Log($"<color=green>[StateManager] 스킵 완료: {targetProcedure.stepName}</color>");
-    }
-
-    
-    /// <summary>
-    /// AirPlane 초기화 완료 시 호출
-    /// </summary>
-    private void OnAirPlaneInitialized()
-    {
-        Debug.Log("[StateManager] AirPlane 초기화 완료 - Point 체크 시작");
-        AirPlane.OnAirPlaneReady -= OnAirPlaneInitialized;
-        
     }
     
     /// <summary>
@@ -770,7 +1057,8 @@ public class StateManager_New : MonoBehaviour
     /// </summary>
     private void StartFreeFall()
     {
-        StartCoroutine(TempJumpDelay());
+        if (_jumpRoutine != null) StopCoroutine(_jumpRoutine);
+        _jumpRoutine = StartCoroutine(TempJumpDelay());
     }
 
     /// <summary>
@@ -846,13 +1134,39 @@ public class StateManager_New : MonoBehaviour
     {
         _isSuccess = true;
     }
-    
+
+    /// <summary>
+    /// Deploy 애니메이션 종료(EndDeployParachute)가 현재 절차 완료 트리거인지 여부.
+    /// HAHO/HALO FreeFall(PullCord) 전용 — Deploy가 절차 완료 신호.
+    /// STANDARD InAir 자동 Deploy 가드 / PullSubCord 동기 Deploy / ForceMainParachute 등에서는 false.
+    /// </summary>
+    public bool IsDeployProcedureCompleter()
+    {
+        return _currentProcedure != null
+            && _currentProcedure.stepName == "FreeFall"
+            && _currentProcedure.completeCondition == CompleteCondition.PullCord;
+    }
+
     /// <summary>
     /// 절차 완료 이벤트
     /// </summary>
     public void OnProcedureComplete()
     {
         Debug.Log(_currentProcedure.stepName + ":" + "완료");
+
+        // GoJump(Fall) 절차가 외부 성공신호로 끝났는데 아직 점프 안 한 상태면 Jump() 강제 호출.
+        // (_jumpRoutine이 CleanPrevEvents에서 stop되므로 5초 timeout 자동 점프가 발화하지 않음 → 비행기 안에서 낙하산만 펴지는 증상 방지)
+        if (_currentProcedure != null
+            && _currentProcedure.completeCondition == CompleteCondition.Fall
+            && _character != null
+            && _character.paraCtrl != null
+            && !_character.paraCtrl.isJumpStart)
+        {
+            Debug.Log("[StateManager] GoJump 외부 종료 - Jump() 강제 실행");
+            _character.Jump();
+            _cameraController?.OnJumpNoiseCam();
+        }
+
         CleanPrevEvents();
 
         if (_currentProcedure.completeCondition != CompleteCondition.None)
@@ -877,7 +1191,186 @@ public class StateManager_New : MonoBehaviour
             _wsDBClient.SendProcedureData(data);
         }
     }
-    
+
+    /// <summary>
+    /// 우발상황 수신 (WS_DB_Client → StateManager_New)
+    /// </summary>
+    public void ReceiveContingency(Contingency c)
+    {
+        if (c == null)
+        {
+            Debug.LogWarning("[StateManager] ReceiveContingency: null contingency 무시");
+            return;
+        }
+
+        if (_currentTimeline != null && c.timelineId != _currentTimeline.timelineID)
+        {
+            Debug.LogWarning($"[StateManager] 우발상황({c.id}) timelineId 불일치 — c.timelineId={c.timelineId}, current={_currentTimeline.timelineID}");
+        }
+        if (_currentProcedure != null && c.procedureId != _currentProcedure.id)
+        {
+            Debug.LogWarning($"[StateManager] 우발상황({c.id}) procedureId 불일치 — c.procedureId={c.procedureId}, current={_currentProcedure.id}");
+        }
+
+        if (string.IsNullOrEmpty(_activeContingencyId) == false)
+        {
+            Debug.LogWarning($"[StateManager] 활성 중({_activeContingencyId}) — 새 우발상황({c.id}) 무시");
+            return;
+        }
+
+        if (_isSkipPending)
+        {
+            if (_pendingContingency != null)
+            {
+                Debug.LogWarning($"[StateManager] 큐잉 슬롯 점유 중({_pendingContingency.id}) — 새 우발상황({c.id}) 무시");
+                return;
+            }
+            Debug.Log($"[StateManager] 스킵 진행 중 — 우발상황({c.id}) 큐잉");
+            _pendingContingency = c;
+            _contingencyQueueExpireCoroutine = StartCoroutine(ExpireQueuedContingency(c.id));
+            return;
+        }
+
+        ApplyContingency(c);
+    }
+
+    private void ApplyContingency(Contingency c)
+    {
+        _activeContingencyId = c.id;
+        ApplyContingencyHardware(c);
+        UIManager.Inst.ShowContingencyOverlay(c);
+        if (_contingencyDurationCoroutine != null) StopCoroutine(_contingencyDurationCoroutine);
+        _contingencyDurationCoroutine = StartCoroutine(WaitForContingencyDuration(c));
+        Debug.Log($"[StateManager] 우발상황({c.id}) 활성 — duration={c.duration}");
+    }
+
+    private void CompleteContingency(Contingency c, bool success)
+    {
+        _activeContingencyId = "";   // ★ 1순위 절대 유지 — W-pre6 race 회피
+        Debug.Log($"[StateManager] CompleteContingency entry — _activeContingencyId cleared, c.id={c.id}, success={success}");
+
+        // ★ 우발상황 효과 종료 — LineTwist 는 yaw 이관 포함 EndLineTwistProcedure, 나머지는 EndContingencyEffects
+        if (_character?.paraCtrl != null)
+        {
+            // 실패 path 자동 reserve 전개 (모든 우발상황 공통) — 성공 path 는 이미 isSubPara=true
+            if (!success && !_character.paraCtrl.isSubPara)
+            {
+                Debug.Log("[StateManager] CompleteContingency — 실패 path 자동 reserve 전개");
+                _character.paraCtrl.DeploySubPara();
+            }
+
+            if (c.id.EndsWith("_LineTwist"))
+            {
+                _character.paraCtrl.EndLineTwistProcedure();
+            }
+            else
+            {
+                _character.paraCtrl.EndContingencyEffects();
+            }
+        }
+
+        if (_contingencyDurationCoroutine != null)
+        {
+            StopCoroutine(_contingencyDurationCoroutine);
+            _contingencyDurationCoroutine = null;
+        }
+        UIManager.Inst.HideContingencyOverlay(success);
+        UIManager.Inst.AddResult(c.evaluationId, success ? "성공" : "실패");
+        _wsDBClient.SendSituationResultData(new SituationResultData() { resultData = success });
+
+        // 절차 위임 path (case PullSubCord) 에서 OnProcedureComplete 시 _isSuccess 판단에 사용
+        _lastContingencyResult = success;
+
+        Debug.Log($"[StateManager] 우발상황({c.id}) 종료 — {(success ? "성공" : "실패")}");
+    }
+
+    /// <summary>
+    /// CSV 4컬럼(leftCtrLine/rightCtrLine/dropSpeed/action) → AresHardwareParagliderController 효과 매핑.
+    /// LineTwist 만 회전 효과 + dropBonus 55f 하드코딩(D4=a) — BeginLineTwistProcedure.
+    /// 나머지 11종 → BeginContingencyEffects(per-side / dropBonus / needCutaway).
+    /// </summary>
+    private void ApplyContingencyHardware(Contingency c)
+    {
+        bool leftOn  = (c.leftCtrLine  == "ON");
+        bool rightOn = (c.rightCtrLine == "ON");
+        float dropBonus = float.TryParse(c.dropSpeed, out var v) ? v : 0f;
+        bool needCutaway = (c.action == "MainParaCut");
+        // action=MainParaOff → needCutaway=false, chestTrigger 만 활성, 옵션 C 가 reserve 시점 isPara 토글
+        // action=MainParaCut → needCutaway=true, 즉시 메인 컷어웨이
+
+        Debug.Log($"[StateManager] ApplyContingencyHardware — c.id={c.id}, leftOn={leftOn}, rightOn={rightOn}, dropBonus={dropBonus}, needCutaway={needCutaway}");
+
+        if (_character?.paraCtrl == null)
+        {
+            // 진단 (임시) — _character 상태 + 씬 내 PlayCharacter 인스턴스 추적
+            var allChars = UnityEngine.Object.FindObjectsByType<PlayCharacter>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            string charsInfo = "";
+            foreach (var c2 in allChars)
+            {
+                charsInfo += $"[id={c2.GetInstanceID()}, active={c2.gameObject.activeInHierarchy}, paraCtrl={(c2.paraCtrl != null ? c2.paraCtrl.GetInstanceID().ToString() : "null")}] ";
+            }
+            Debug.LogWarning($"[StateManager] ApplyContingencyHardware — _character.paraCtrl null. _character={(_character != null ? _character.GetInstanceID().ToString() : "null")}, 씬 내 PlayCharacter 총 {allChars.Length}개: {charsInfo}");
+            return;
+        }
+
+        // LineTwist — 회전 효과 + dropBonus 55f 오버라이드 (D4=a 기존 동작 보존, CSV dropSpeed=10 무시)
+        if (c.stepName == "LineTwist")
+        {
+            int direction = UnityEngine.Random.Range(0, 2) == 0 ? -1 : +1;
+            _character.paraCtrl.BeginLineTwistProcedure(direction, 55f);
+        }
+        else
+        {
+            _character.paraCtrl.BeginContingencyEffects(leftOn, rightOn, dropBonus, needCutaway);
+        }
+    }
+
+    /// <summary>
+    /// Phase 5 영역 — 성공 감지 hook (본 버전 호출자 0건).
+    /// 다음 버전에서 ARES 가 SubParaOn 등 조건 충족 신호를 보낼 때 발화.
+    /// </summary>
+    public void OnContingencyConditionMet(ContingencyCompleteCondition condition)
+    {
+        if (string.IsNullOrEmpty(_activeContingencyId)) return;
+
+        var active = DataManager.Inst.GetContingency(_activeContingencyId);
+        if (active == null) return;
+
+        if (active.completeCondition != condition)
+        {
+            Debug.LogWarning($"[StateManager] 감지 조건({condition}) ≠ 활성 우발상황 조건({active.completeCondition}) — 무시");
+            return;
+        }
+
+        CompleteContingency(active, success: true);
+    }
+
+    /// <summary>
+    /// 우발상황 duration 만료 코루틴 (실패 종료).
+    /// </summary>
+    private IEnumerator WaitForContingencyDuration(Contingency c)
+    {
+        var seconds = int.TryParse(c.duration, out var v) ? v : 10;
+        yield return new WaitForSeconds(seconds);
+        Debug.Log($"[StateManager] 우발상황({c.id}) duration({seconds}s) 만료 — 실패 종료");
+        CompleteContingency(c, success: false);
+        _contingencyDurationCoroutine = null;
+    }
+
+    /// <summary>
+    /// 큐잉된 우발상황 20초 만료 폐기 (설계서 §9.2).
+    /// </summary>
+    private IEnumerator ExpireQueuedContingency(string queuedId)
+    {
+        yield return new WaitForSeconds(20f);
+        if (_pendingContingency != null && _pendingContingency.id == queuedId)
+        {
+            Debug.LogWarning($"[StateManager] 큐잉 우발상황({queuedId}) 20초 만료 — 폐기");
+            _pendingContingency = null;
+        }
+        _contingencyQueueExpireCoroutine = null;
+    }
+
     /// <summary>
     /// 타임라인 완료 이벤트
     /// </summary>
@@ -980,90 +1473,203 @@ public class StateManager_New : MonoBehaviour
     /// <summary>
     /// 비행기 출발
     /// </summary>
+    /// <summary>
+    /// [리팩토링] 비행기 출발 - 명령 큐 방식
+    ///
+    /// 기존 방식:
+    ///   SetWaitingMode(false) + OnAirPlaneRoutePointReached 이벤트 등록
+    ///
+    /// 새로운 방식:
+    ///   Continue 명령 추가 (대기 해제)
+    /// </summary>
     private void AirPlaneDeparture()
     {
-        if(_airPlane == null) _airPlane = FindAnyObjectByType<AirPlane>();
-        Debug.Log("[StateManager] 비행기 출발");
-        _airPlane.SetWaitingMode(false);
-        _airPlane.OnRoutePointReached += OnAirPlaneRoutePointReached;
+        if (_airPlane == null) _airPlane = FindAnyObjectByType<AirPlane>();
+
+        Debug.Log("[StateManager] 비행기 출발 명령");
+
+        var command = new AirplaneCommand(
+            AirplaneCommandType.Continue,
+            -1,  // 목표 없음
+            null // 완료 콜백 없음 (단순 대기 해제)
+        );
+
+        _airPlane.EnqueueCommand(command);
     }
     
-    /// <summary>
-    /// 비행기가 route 포인트에 도착했을때 대기
-    /// </summary>
-    private void OnAirPlaneRoutePointReached(int routeIndex)
-    {
-        Debug.Log($"[StateManager] Route 포인트 {routeIndex}번 도달 이벤트 수신.");
-        
-        // 목표 인덱스에 도달했는지 체크
-        if (!DataManager.Inst.routes[routeIndex].isCompletePoint) return;
-            
-        // 이벤트 구독 해제
-        if (_airPlane != null)
-            _airPlane.OnRoutePointReached -= OnAirPlaneRoutePointReached;
-            
-        // 목표 인덱스에 도달하면 포인트 절차가 완료될때까지 대기
-        _airPlane?.SetWaitingMode(true);
-    }
+    // ============================================================
+    // [삭제] 기존 이벤트 핸들러 메서드들
+    // ============================================================
+    // OnAirPlaneRoutePointReached: 비행기 도착 시 대기 처리
+    // → 명령 큐 방식에서는 AirPlane이 자체적으로 대기 처리
+    //
+    // PointProcedureComplete: 포인트 절차 완료 처리
+    // → StartPointProcedure로 대체 (명령 큐 방식)
+    // ============================================================
 
     /// <summary>
-    /// 포인트 절차 완료처리
+    /// [리팩토링] Point 절차 시작 - 명령 큐 방식
+    ///
+    ///
+    /// 새로운 방식:
+    /// 1. 3가지 케이스를 명확히 구분
+    /// 2. 각 케이스마다 적절한 명령 생성
+    /// 3. 명령 완료 시 콜백으로 절차 완료 처리
     /// </summary>
-    private void PointProcedureComplete(int routeIndex)
+    private void StartPointProcedure()
     {
-        var route = DataManager.Inst.routes[routeIndex];
+        // skipAircraftPosition이 NONE이면 처리 불가
         if (_currentProcedure.skipAircraftPosition == "NONE")
         {
-            Debug.LogWarning($"{_currentProcedure.stepName}은 목표 포인트가 없습니다.");
+            Debug.LogWarning($"[StateManager] {_currentProcedure.stepName}은 skipAircraftPosition이 NONE입니다.");
             return;
         }
-        
+
+        if (_airPlane == null) _airPlane = FindAnyObjectByType<AirPlane>();
+
+        // 인덱스 계산
         int scenarioRouteIndex = DataManager.Inst.GetScenarioRouteIndex();
-        var targetRoute = scenarioRouteIndex + int.Parse(_currentProcedure.skipAircraftPosition)+1;
-        if (routeIndex > targetRoute)
+        int offset = int.Parse(_currentProcedure.skipAircraftPosition);
+        int departureIdx = scenarioRouteIndex + offset;      // 출발 지점 (대기)
+        int targetIdx = departureIdx + 1;                    // 목표 지점 (완료)
+        int currentIdx = _airPlane.GetCurrentRouteIndex();
+
+        Debug.Log($"[StateManager] Point 절차 시작: {_currentProcedure.stepName}");
+        Debug.Log($"  - 현재 위치: {currentIdx}");
+        Debug.Log($"  - 출발 지점: {departureIdx} (대기)");
+        Debug.Log($"  - 목표 지점: {targetIdx} (완료)");
+
+        // ========================================
+        // 케이스 1: 이미 목표를 지나침
+        // ========================================
+        // 기존 문제: PointProcedureComplete에서 return만 하고 완료 처리 안 함
+        // 해결: 즉시 절차 완료 처리
+        if (currentIdx >= targetIdx)
         {
-            Debug.LogWarning($"[StateManager] 이미 목표 포인트{targetRoute}를 지나침");
+            Debug.Log($"[StateManager] 이미 목표 지점을 지나침 ({currentIdx} >= {targetIdx}) - 즉시 완료");
+            OnProcedureComplete();
             return;
         }
 
-        if (routeIndex < targetRoute)
+        // ========================================
+        // 케이스 2: 출발 지점과 목표 지점 사이
+        // ========================================
+        // 비행기가 이미 출발 지점을 지나서 목표로 가는 중
+        // → MoveTo 명령: 목표까지 이동 (대기 없음)
+        if (currentIdx >= departureIdx && currentIdx < targetIdx)
         {
-            if (_airPlane.GetWaitingMode())
-            {
-                Debug.LogWarning($"[StateManager] 현재 위치{routeIndex} 비행기가 목표 포인트({targetRoute})전에 있는데 출발을 안함");
-                Debug.LogWarning("[StateManager] 스킵으로 비행기 위치 동기화 후 출발");
-                AirPlaneDeparture();
-                _airPlane.OnRoutePointReached += PointProcedureComplete;
-                return;
-            }
+            Debug.Log($"[StateManager] 출발 지점과 목표 지점 사이 - 목표까지 이동");
+
+            // 목표 지점까지 이동 명령
+            var command = new AirplaneCommand(
+                AirplaneCommandType.MoveTo,
+                targetIdx,
+                (success) =>
+                {
+                    if (success && !_isSkipPending)
+                    {
+                        Debug.Log($"[StateManager] 목표 지점({targetIdx}) 도달 - 절차 완료");
+                        OnProcedureComplete();
+                    }
+                }
+            );
+
+            _airPlane.EnqueueCommand(command);
+            return;
         }
 
-        // if (!route.isCompletePoint)
-        // {
-        //     Debug.LogError($"[StateManager]  {routeIndex}번은 완료 조건에 해당하는 목표 포인트가 아님");
-        //     return;
-        // }
-        
-        Debug.Log($"[StateManager]{routeIndex}번 포인트 도착 {_currentProcedure.stepName} 절차 완료");
-        if (_isSkipPending == false)
+        // ========================================
+        // 케이스 3: 출발 지점 전
+        // ========================================
+        // 비행기가 아직 출발 지점 전에 있음
+        // → MoveToAndWait 명령: 출발 지점까지 이동 후 대기
+        //   (교관 신호를 OnInstructorSignal로 받음)
+        if (currentIdx < departureIdx)
         {
-            OnProcedureComplete();
-        }
+            Debug.Log($"[StateManager] 출발 지점 전 - 목표 지점까지 이동 후 대기");
 
-        AirPlaneDeparture();
-        _airPlane.OnRoutePointReached -= PointProcedureComplete;
+            // 1단계: 목표 지점까지 이동 후 대기
+            var moveToWaitCommand = new AirplaneCommand(
+                AirplaneCommandType.MoveToAndWait,
+                targetIdx,
+                (success) =>  // ✅ 출발 지점 도달 시 절차 완료 처리
+                {
+                    if (success && !_isSkipPending)
+                    {
+                        Debug.Log($"[StateManager] 출발 지점({departureIdx}) 도달 - 절차 완료");
+                        OnProcedureComplete();  // 교관에게 완료 신호 전송
+                    }
+                }
+            );
+
+            _airPlane.EnqueueCommand(moveToWaitCommand);
+        }
     }
 
     /// <summary>
-    /// 스킵 시 비행기 위치 동기화
+    /// [신규] 교관 신호 수신 (외부에서 호출)
+    ///
+    /// 기존에는 이벤트 핸들러로 처리했지만,
+    /// 이제는 명령 큐 방식으로 목표 지점까지 이동 명령 추가
+    /// </summary>
+    public void OnInstructorSignal()
+    {
+        if (_currentProcedure == null) return;
+        if (_currentProcedure.completeCondition != CompleteCondition.Point) return;
+
+        int scenarioRouteIndex = DataManager.Inst.GetScenarioRouteIndex();
+        int offset = int.Parse(_currentProcedure.skipAircraftPosition);
+        int targetIdx = scenarioRouteIndex + offset + 1;
+
+        Debug.Log($"[StateManager] 교관 신호 수신 - 목표 지점({targetIdx})으로 이동 시작");
+
+        // 목표 지점까지 이동 명령
+        var command = new AirplaneCommand(
+            AirplaneCommandType.MoveTo,
+            targetIdx,
+            (success) =>
+            {
+                if (success && !_isSkipPending)
+                {
+                    Debug.Log($"[StateManager] 목표 지점({targetIdx}) 도달 - 절차 완료");
+                    OnProcedureComplete();
+                }
+            }
+        );
+
+        _airPlane.EnqueueCommand(command);
+    }
+
+    /// <summary>
+    /// [리팩토링] 스킵 시 비행기 위치 동기화 - 명령 큐 방식
+    ///
+    /// 기존 방식:
+    ///   MoveToPointImmediately 직접 호출
+    ///
+    /// 새로운 방식:
+    ///   TeleportTo 명령 추가 (즉시 텔레포트)
+    ///
+    /// [버그 수정]
+    ///   문제: TeleportTo와 StartPointProcedure가 동시에 실행되어 Race Condition 발생
+    ///        → StartPointProcedure가 이동 전 위치를 읽어서 잘못된 Case 선택
+    ///        → MoveToAndWait 명령이 중복 추가되어 무한 대기
+    ///
+    ///   해결: TeleportTo의 onComplete 콜백에서 StartPointProcedure 재호출
+    ///        → TeleportTo 완료 후 업데이트된 위치로 올바른 Case 선택
+    ///        → Race Condition 완전 해결
     /// </summary>
     private void SyncAirplaneForSkip(string targetProcedureId)
     {
-        Debug.Log("[StateManager] 비행기 위치 동기화 시작");
         var targetProcedure = DataManager.Inst.GetProcedure(targetProcedureId);
         if (targetProcedure == null)
         {
             Debug.LogError("[StateManager] 목표 절차가 null 입니다.");
+            return;
+        }
+        
+        if (targetProcedure.skipAircraftPosition == "NONE")
+        {
+            Debug.LogWarning($"{targetProcedure.stepName}은 스킵 포인트가 없습니다.");
             return;
         }
 
@@ -1075,75 +1681,88 @@ public class StateManager_New : MonoBehaviour
 
         if (_airPlane != null)
         {
-            if (targetProcedure.skipAircraftPosition == "NONE")
-            {
-                Debug.LogWarning($"{targetProcedure.stepName}은 스킵 포인트가 없습니다.");
-                return;
-            }
             int scenarioRouteIndex = DataManager.Inst.GetScenarioRouteIndex();
             var targetIndex = scenarioRouteIndex + Int32.Parse(targetProcedure.skipAircraftPosition);
-            Debug.Log($"[StateManager] 비행기를 {targetProcedure.stepName} 절차 목표지점 {targetIndex}로 즉시 이동");
-            _airPlane.MoveToPointImmediately(targetIndex);
-            //AirPlaneDeparture();
+
+            Debug.Log("[StateManager] 비행기 위치 동기화 시작");
+            Debug.Log($"[StateManager] 스킵: {targetIndex}번 지점으로 텔레포트");
+
+            var command = new AirplaneCommand(
+                AirplaneCommandType.TeleportTo,
+                targetIndex,
+                (success) =>
+                {
+                    if (success)
+                    {
+                        Debug.Log($"[StateManager] TeleportTo 완료. currentIdx={_airPlane.GetCurrentRouteIndex()}");
+                    }
+                }
+            );
+
+            _airPlane.EnqueueCommand(command);
         }
     }
     
     /// <summary>
-    /// 스킵 시 필수 동작들 실행
+    /// 스킵 시 중간 절차들의 필수 동작(장비, 자세, 평가 기록) 실행.
+    /// 비행기 위치 동기화/출발은 호출자가 target에 대해 1회만 처리.
     /// </summary>
     private void ExecuteEssentialActions(List<Procedure> skippedProcedures)
     {
         Debug.Log($"<color=cyan>[StateManager] {skippedProcedures.Count}개 절차의 필수 동작 실행</color>");
-        
+
         foreach (var procedure in skippedProcedures)
         {
             Debug.Log($"<color=cyan>[StateManager] 스킵 절차: {procedure.stepName} (ID: {procedure.id})</color>");
-            
-            // CompleteCondition에 따른 필수 동작 처리
+
             switch (procedure.completeCondition)
             {
                 case CompleteCondition.Item:
-                    // 착용 절차는 강제 착용
                     if (_wearingSet == null) _wearingSet = FindAnyObjectByType<WearingSet>();
                     _wearingSet?.ForceEquip(procedure.item);
                     Debug.Log($"<color=cyan>[StateManager] 강제 착용: {procedure.item}");
                     break;
-                    
+
                 case CompleteCondition.SitDown:
-                    // 앉기 상태 설정
                     AresHardwareService.Inst.SetEvent(AresEvent.SitDown);
                     _character = FindAnyObjectByType<PlayCharacter>();
                     _character?.SkipSitDown();
                     Debug.Log("<color=cyan>[StateManager] 강제 앉기 처리");
                     break;
-                    
-                case CompleteCondition.Stand:
-                    // 서기 상태 설정
+
+                case CompleteCondition.StandUp:
                     AresHardwareService.Inst.SetEvent(AresEvent.None);
                     _cameraController = FindAnyObjectByType<CameraController>();
                     _cameraController.MoveToPoint(CamPos.InAirPlane);
                     _character?.SkipStand();
                     Debug.Log("<color=cyan>[StateManager] 강제 서기 처리");
                     break;
-                    
+
                 case CompleteCondition.Point:
+                    if (procedure.stepName == "StandUp")
+                    {
+                        // 스킵 시에는 PlayCharacter.Stand()의 TempDelayAni 코루틴이 stale로 살아남아
+                        // 후속 절차에서 OnSuccessAction을 잘못 발화시키는 버그가 있음 → SkipStand 사용
+                        AresHardwareService.Inst.SetEvent(AresEvent.None);
+                        if (_cameraController == null) _cameraController = FindAnyObjectByType<CameraController>();
+                        _cameraController?.MoveToPoint(CamPos.InAirPlane);
+                        if (_character == null) _character = FindAnyObjectByType<PlayCharacter>();
+                        _character?.SkipStand();
+                        Debug.Log("<color=cyan>[StateManager] 스킵 서기 (코루틴 없이)");
+                    }
                     Debug.Log($"<color=cyan>[StateManager] Point 절차 스킵: {procedure.stepName}");
-                    _airPlane.DoorOpenSkip();
+                    if (_airPlane != null) _airPlane.OpenDoorImmediately();
                     Debug.Log("<color=cyan>[StateManager] 문 여는 애니메이션 스킵");
                     break;
+
                 case CompleteCondition.SceneLoading:
                     break;
+
                 default:
-                    // 기타 절차들은 로깅만
                     Debug.Log($"<color=cyan>[StateManager] 일반 절차 스킵: {procedure.stepName}");
                     break;
             }
-            
-            // 비행기 위치는 별도 처리
-            SyncAirplaneForSkip(procedure.id);
-            if(_airPlane != null) AirPlaneDeparture();
-            
-            // 평가 결과 저장 (스킵됨)
+
             UIManager.Inst.AddResult(procedure.evaluationId, "스킵");
         }
     }

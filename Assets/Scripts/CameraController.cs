@@ -36,6 +36,7 @@ public class CameraController : MonoBehaviour
         _updateAction = CamNoiseAction;
         Debug.Log("[CameraController] 카메라 노이즈 초기화");
         
+        fadeCtrl = FindAnyObjectByType<FadeController>(FindObjectsInactive.Include);
         fadeCtrl.Init(FadeDir.In, null);
         Debug.Log("[CameraController] 카메라 초기 위치로 설정");
     }
@@ -44,7 +45,6 @@ public class CameraController : MonoBehaviour
     private void MoveInPlane()
     {
         Debug.Log("[oxygen_check] 비행기 안으로 이동");
-        StateManager.InstructionUIShown += _gageUI.InitUI;
         MoveToPoint(CamPos.InAirPlane);
         fadeCtrl.Init(FadeDir.In, null);
     }

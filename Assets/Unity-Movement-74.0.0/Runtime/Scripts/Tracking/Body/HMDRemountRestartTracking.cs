@@ -1,5 +1,6 @@
 // Copyright (c) Meta Platforms, Inc. and affiliates.
 
+using System;
 using UnityEngine;
 
 namespace Oculus.Movement.Tracking

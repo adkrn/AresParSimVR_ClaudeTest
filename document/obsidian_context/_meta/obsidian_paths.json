@@ -1,0 +1,27 @@
+{
+  "projectId": "aresparsimvr",
+  "vaultRoot": "C:/Obsidian/AresParSimVR",
+  "managedRoots": [
+    "00_Home",
+    "04_Architecture",
+    "06_Troubleshooting",
+    "07_Decisions",
+    "08_Lessons"
+  ],
+  "mcpRoots": [
+    "06_Troubleshooting",
+    "07_Decisions",
+    "08_Lessons",
+    "10_Worklogs"
+  ],
+  "mirrorExcludeRoots": [
+    "04_Architecture/Drafts",
+    "04_Architecture/Generated",
+    "06_Troubleshooting/Drafts",
+    "07_Decisions/Drafts",
+    "08_Lessons/Drafts",
+    "10_Worklogs"
+  ],
+  "indexTargets": [],
+  "scanRoots": []
+}

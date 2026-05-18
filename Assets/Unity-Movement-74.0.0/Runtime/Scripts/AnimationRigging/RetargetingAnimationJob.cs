@@ -88,7 +88,7 @@ namespace Oculus.Movement.AnimationRigging
         {
             var targetTransform = TargetTransforms[i];
             var sourceTransform = SourceTransforms[i];
-
+            
             if (ShouldUpdateRotation[i])
             {
                 var rotationOffset = RotationOffsets[i];

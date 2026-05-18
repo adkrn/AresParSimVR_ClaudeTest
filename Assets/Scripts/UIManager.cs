@@ -14,6 +14,8 @@ public class UIManager : MonoBehaviour
     [SerializeField] private ResultUI resultUI;
     [SerializeField] private GameObject pauseUI;
     [SerializeField] private AudioSource voiceAudioSource; // 음성 재생용 AudioSource (2D)
+    [SerializeField] private ContingencyOverlay contingencyOverlay;
+    [SerializeField] private AudioSource contingencySfxSource; // placeholder — 본 버전은 ContingencyOverlay.sfxSource 단독 사용
     private FadeController fadeController;
 
     public List<EvalResult> evalRList = new();
@@ -61,6 +63,13 @@ public class UIManager : MonoBehaviour
     {
         var instData = DataManager.Inst.GetInstruction(procedure.instructionId);
 
+        // instructionId 빈값/매핑 실패 시 InstructionUI 미표시 (S4b — D15·D16 fallback 안전망)
+        if (instData == null)
+        {
+            Debug.Log($"[UIManager] {procedure.stepName} — instructionId='{procedure.instructionId}' 매핑 실패. InstructionUI 표시 skip");
+            return;
+        }
+
         if (instData.hudVisible == "0")
         {
             Debug.Log($"[UIManager] {procedure.stepName}은 UI를 표시하지 않는 절차다.");
@@ -100,6 +109,28 @@ public class UIManager : MonoBehaviour
         {
             Debug.LogWarning("[UIManager] voiceAudioSource가 할당되지 않았습니다!");
         }
+    }
+
+    /// <summary>
+    /// 우발상황 오버레이 활성. ContingencyOverlay.Activate 위임.
+    /// </summary>
+    public void ShowContingencyOverlay(Contingency c)
+    {
+        if (contingencyOverlay == null)
+        {
+            Debug.LogWarning("[UIManager] contingencyOverlay 가 할당되지 않음");
+            return;
+        }
+        contingencyOverlay.Activate(c);
+    }
+
+    /// <summary>
+    /// 우발상황 오버레이 비활성. ContingencyOverlay.Deactivate 위임.
+    /// </summary>
+    public void HideContingencyOverlay(bool success)
+    {
+        if (contingencyOverlay == null) return;
+        contingencyOverlay.Deactivate(success);
     }
 
     /// <summary>
@@ -315,6 +346,11 @@ public class UIManager : MonoBehaviour
             // 실행 중인 코루틴 정지
             instructionUI.updateAction = null;
             instructionUI.gameObject.SetActive(false);
+        }
+
+        if (resultUI != null && resultUI.gameObject.activeSelf)
+        {
+            resultUI.gameObject.SetActive(false); 
         }
     }
 

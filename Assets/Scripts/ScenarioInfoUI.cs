@@ -29,7 +29,6 @@ public class ScenarioInfoUI : MonoBehaviour
     private Coroutine _fadeRoutine;
     private Coroutine _countdownRoutine;
     private StartManager _startManager;
-    private StateManager _stateManager;
 
     private void Start()
     {
@@ -42,9 +41,6 @@ public class ScenarioInfoUI : MonoBehaviour
         {
             Debug.LogError("ScenarioInfoUI: CanvasGroup 컴포넌트가 필요합니다.");
         }
-
-        _startManager = FindAnyObjectByType<StartManager>();
-        _stateManager = FindAnyObjectByType<StateManager>();
     }
 
     public void InitUI(Procedure proc)
@@ -126,9 +122,6 @@ public class ScenarioInfoUI : MonoBehaviour
 
         _fadeRoutine = null;
         _startManager.StartFadeOut();
-        
-        // 일반 타임라인 실행시 UI를 켜주는게 브리핑 절차이기 때문에 여기서 절차 완료 처리를 해준다.
-        StateManager.InstructionUIShown -= InitUI;
     }
 
     private void OnDisable()

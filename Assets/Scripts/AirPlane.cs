@@ -14,7 +14,7 @@ public class AirPlane : MonoBehaviour
     private float propRotSpeed = 720.0f;
     [SerializeField] private string mainSceneName;
     
-    [Header("문 관련")] 
+    [Header("문 관련")]
     [SerializeField] private AudioSource audioDoorOpen;
     [SerializeField] private Transform door01;
     [SerializeField] private Transform door02;
@@ -32,13 +32,13 @@ public class AirPlane : MonoBehaviour
     private float _lerpTime02 = 0;
     private Vector3 _doorOpen01Vector;
     private Vector3 _doorOpen02Vector;
+    private bool doorOpenEndCalled = false;  // 문 열림 효과 중복 호출 방지
 
     [Header("구름")] 
     public GameObject clouds;
     public GameObject stopCloud;
     [SerializeField] private Transform sceneRoot;
-
-    private StateManager _stateManager;
+    
     private Action _updateAction = null;
     
     [Header("Route 이동 관련")]
@@ -51,6 +51,35 @@ public class AirPlane : MonoBehaviour
     private bool isFollowingRoute = false;
     private bool isInitialized = false;
     private bool isWaitingForSignal = false;  // 교관 신호 대기 상태
+
+    // ============================================================
+    // 명령 큐 시스템 (리팩토링)
+    // ============================================================
+    // 기존 문제:
+    // 1. 이벤트 핸들러 중복 등록 (OnRoutePointReached에 여러 핸들러 등록)
+    // 2. 이벤트 해제 타이밍 복잡 (언제 해제해야 하는지 불명확)
+    // 3. 상태 분기 폭발 (비행기 위치, 대기 모드, 스킵 등 조합)
+    //
+    // 해결책: 명령 큐 패턴
+    // - StateManager가 명령 생성 → AirPlane이 순차 실행
+    // - 각 명령은 완료 시 콜백 호출 → StateManager가 다음 행동 결정
+    // - 이벤트 중복 없음, 자동 정리, 명령 흐름 명확
+    // ============================================================
+
+    /// <summary>
+    /// 명령 큐: FIFO(First In First Out) 순서로 명령 실행
+    /// </summary>
+    private Queue<AirplaneCommand> commandQueue = new Queue<AirplaneCommand>();
+
+    /// <summary>
+    /// 현재 실행 중인 명령
+    /// </summary>
+    private AirplaneCommand currentCommand = null;
+
+    /// <summary>
+    /// 명령 실행 중 여부
+    /// </summary>
+    private bool isExecutingCommand = false;
 
     private void Start()
     {
@@ -66,7 +95,32 @@ public class AirPlane : MonoBehaviour
         Transform plane = transform.GetChild(0);
         _updateAction += () =>
         {
-            ParticipantManager.Inst.SetMonitoringDataPlanePos(transform.position, plane.eulerAngles.y);
+            // 교관 화면에는 비행기 그래픽의 실제 회전(Slerp 보간으로 지연됨)이 아니라
+            // 현재 진행 방향(다음 routePoint를 향하는 방향)을 보냄.
+            // 곡선 경로(Bravo 등)에서 보간 지연으로 비행기 머리가 진행 방향과 어긋나는 문제 해결.
+            Vector3 dir;
+            if (isFollowingRoute && routePoints != null
+                && targetRouteIndex >= 0 && targetRouteIndex < routePoints.Count)
+            {
+                Vector3 targetPos = new Vector3(
+                    routePoints[targetRouteIndex].position.x,
+                    jumpHeight,
+                    routePoints[targetRouteIndex].position.z);
+                dir = targetPos - transform.position;
+            }
+            else
+            {
+                // Route 미진행 시 비행기 forward 사용 (fallback)
+                dir = plane.forward;
+            }
+
+            dir.y = 0f;
+            if (dir.sqrMagnitude < 0.0001f) dir = Vector3.forward;
+            dir.Normalize();
+            float yaw = Mathf.Atan2(dir.x, dir.z) * Mathf.Rad2Deg;
+            if (yaw < 0f) yaw += 360f;
+
+            ParticipantManager.Inst.SetMonitoringDataPlanePos(transform.position, yaw);
         };
     }
 
@@ -77,24 +131,28 @@ public class AirPlane : MonoBehaviour
         jumpHeight = DataManager.Inst.scenario.endOperationalAltidute;
         
         // 노트 -> m/s 변환값
-        float knotToMps = 1852f / 3600f;
-        moveSpeed = DataManager.Inst.scenario.allowedSpeedKnots * knotToMps;
+        //float knotToMps = 1852f / 3600f;
+        //moveSpeed = DataManager.Inst.scenario.allowedSpeedKnots * knotToMps;
+        moveSpeed = 25;
         
         // Route 포인트가 설정될 때까지 임시 위치 (화면 밖)
         // SetRoutePoints가 호출되면 0번 포인트로 이동함
         transform.position = new Vector3(0, jumpHeight, -5000);  // 더 멀리 배치
         Debug.Log($"[AirPlane] 비행기 임시 위치 설정: {transform.position}");
 
-        // 문 여는 애니메이션 실행
+        // 문 상태 초기화 (닫힌 상태로 시작). DoorOpen / OpenDoorImmediately 트리거는 StateManager가 OnAirPlaneReady에서 결정.
         door01.localEulerAngles = Vector3.zero;
         door02.localEulerAngles = Vector3.zero;
         _doorOpen01Vector = new Vector3(doorOpen01_Angle, 0, 0);
         _doorOpen02Vector = new Vector3(doorOpen02_Angle, 0, 0);
         _doorEachOpenTime = doorOpenTime - _doorOpenInterval;
-        Debug.Log("[AirPlane] 문 초기화 완료");
-        DoorOpen();
-        Debug.Log("[AirPlane] 문열기");
-        
+        _doorOpenSpendTime = 0f;
+        _lerpTime01 = 0f;
+        _lerpTime02 = 0f;
+        doorOpenCalled = false;
+        doorOpenEndCalled = false;
+        Debug.Log("[AirPlane] 문 초기화 완료 (닫힌 상태)");
+
         isInitialized = true;
         isWaitingForSignal = true;
     }
@@ -286,38 +344,297 @@ public class AirPlane : MonoBehaviour
     {
         return isWaitingForSignal;
     }
-    
+
+    // ============================================================
+    // 명령 큐 시스템 메서드들
+    // ============================================================
+
+    /// <summary>
+    /// 명령 큐 + 등록된 OnRoutePointReached 핸들러를 모두 클리어.
+    /// 스킵 발생 시 이전 절차의 stale 명령/핸들러가 새 절차를 오염시키는 걸 방지.
+    /// </summary>
+    public void ClearCommandQueue()
+    {
+        int queuedCount = commandQueue.Count;
+        commandQueue.Clear();
+        currentCommand = null;
+        isExecutingCommand = false;
+
+        // 람다로 등록된 stale 핸들러 모두 끊어냄
+        OnRoutePointReached = null;
+
+        Debug.Log($"[AirPlane] 명령 큐/이벤트 핸들러 클리어 (제거된 명령: {queuedCount}개)");
+    }
+
+    /// <summary>
+    /// 명령 추가 (외부에서 호출 - StateManager가 사용)
+    ///
+    /// 기존 방식:
+    ///   StateManager가 직접 이벤트 핸들러 등록
+    ///   → 중복 등록 가능, 해제 타이밍 복잡
+    ///
+    /// 새로운 방식:
+    ///   StateManager가 명령 객체 생성 → EnqueueCommand로 전달
+    ///   → 큐에서 순차 실행, 자동 정리
+    /// </summary>
+    /// <param name="command">실행할 명령</param>
+    public void EnqueueCommand(AirplaneCommand command)
+    {
+        Debug.Log($"[AirPlane] 명령 추가: {command}");
+        commandQueue.Enqueue(command);
+
+        // 현재 실행 중인 명령이 없으면 즉시 실행
+        if (!isExecutingCommand)
+        {
+            ProcessNextCommand();
+        }
+    }
+
+    /// <summary>
+    /// 큐에서 다음 명령을 꺼내 실행
+    ///
+    /// 실행 흐름:
+    /// 1. 큐에서 명령 하나 꺼내기
+    /// 2. 명령 타입에 따라 실행 (switch문)
+    /// 3. 완료되면 CompleteCurrentCommand 호출
+    /// 4. CompleteCurrentCommand에서 다시 ProcessNextCommand 호출 (재귀)
+    /// 5. 큐가 빌 때까지 반복
+    /// </summary>
+    private void ProcessNextCommand()
+    {
+        if (commandQueue.Count == 0)
+        {
+            isExecutingCommand = false;
+            currentCommand = null;
+            Debug.Log("[AirPlane] 모든 명령 완료. 대기 상태.");
+            return;
+        }
+
+        currentCommand = commandQueue.Dequeue();
+        isExecutingCommand = true;
+
+        Debug.Log($"[AirPlane] 명령 실행 시작: {currentCommand}");
+
+        ExecuteCommand(currentCommand);
+    }
+
+    /// <summary>
+    /// 명령 타입에 따라 실행
+    ///
+    /// 각 명령 타입별 동작:
+    /// - MoveToAndWait: 목표까지 이동 후 대기 모드 전환
+    /// - MoveTo: 목표까지 이동 (대기 없음)
+    /// - WaitAtCurrent: 현재 위치에서 대기
+    /// - Continue: 대기 해제
+    /// - TeleportTo: 즉시 텔레포트
+    /// </summary>
+    /// <param name="command">실행할 명령</param>
+    private void ExecuteCommand(AirplaneCommand command)
+    {
+        switch (command.type)
+        {
+            case AirplaneCommandType.MoveToAndWait:
+                ExecuteMoveToAndWait(command);
+                break;
+
+            case AirplaneCommandType.MoveTo:
+                ExecuteMoveTo(command);
+                break;
+
+            case AirplaneCommandType.WaitAtCurrent:
+                // 현재 위치에서 즉시 대기
+                SetWaitingMode(true);
+                CompleteCurrentCommand(true);
+                break;
+
+            case AirplaneCommandType.Continue:
+                // 대기 해제
+                SetWaitingMode(false);
+                CompleteCurrentCommand(true);
+                break;
+
+            case AirplaneCommandType.TeleportTo:
+                // 즉시 텔레포트
+                MoveToPointImmediately(command.targetRouteIndex);
+                CompleteCurrentCommand(true);
+                break;
+
+            default:
+                Debug.LogError($"[AirPlane] 알 수 없는 명령 타입: {command.type}");
+                CompleteCurrentCommand(false);
+                break;
+        }
+    }
+
+    /// <summary>
+    /// MoveToAndWait 명령 실행: 목표까지 이동 후 대기
+    ///
+    /// 기존 방식과 차이점:
+    /// - 기존: StateManager가 이벤트 핸들러 직접 등록
+    /// - 신규: 일회성 핸들러를 명령 내부에서 자동 등록/해제
+    ///
+    /// 사용 사례:
+    /// - Point 절차에서 출발 지점까지 이동 후 교관 신호 대기
+    /// </summary>
+    /// <param name="command">명령 객체</param>
+    private void ExecuteMoveToAndWait(AirplaneCommand command)
+    {
+        int currentIdx = GetCurrentRouteIndex();
+
+        // 이미 목표 지점 이상에 있으면 즉시 완료
+        if (currentIdx >= command.targetRouteIndex)
+        {
+            Debug.Log($"[AirPlane] 이미 목표 지점({command.targetRouteIndex})에 도달. 대기 모드로 전환.");
+            SetWaitingMode(true);
+            CompleteCurrentCommand(true);
+            return;
+        }
+
+        // 목표 지점까지 이동 시작
+        SetWaitingMode(false);
+
+        // 일회성 이벤트 핸들러 등록
+        // 핵심: 명령 완료 시 자동으로 해제됨 (람다 내부에서 -= handler)
+        Action<int> handler = null;
+        handler = (routeIdx) =>
+        {
+            if (routeIdx >= command.targetRouteIndex)
+            {
+                // 목표 도달: 대기 모드 전환
+                SetWaitingMode(true);
+                OnRoutePointReached -= handler;  // 자동 해제 (기존 문제 해결!)
+                CompleteCurrentCommand(true);
+            }
+        };
+
+        OnRoutePointReached += handler;
+    }
+
+    /// <summary>
+    /// MoveTo 명령 실행: 목표까지 이동 (대기 없음)
+    ///
+    /// 사용 사례:
+    /// - Point 절차에서 목표 지점까지 이동하여 절차 완료
+    /// - 출발 지점과 목표 지점 사이에 있을 때
+    /// </summary>
+    /// <param name="command">명령 객체</param>
+    private void ExecuteMoveTo(AirplaneCommand command)
+    {
+        int currentIdx = GetCurrentRouteIndex();
+
+        // 이미 목표 지점 이상에 있으면 즉시 완료
+        if (currentIdx >= command.targetRouteIndex)
+        {
+            Debug.Log($"[AirPlane] 이미 목표 지점({command.targetRouteIndex}) 도달. 계속 진행.");
+            CompleteCurrentCommand(true);
+            return;
+        }
+
+        // 목표 지점까지 이동 시작
+        SetWaitingMode(false);
+
+        // 일회성 이벤트 핸들러 등록
+        Action<int> handler = null;
+        handler = (routeIdx) =>
+        {
+            if (routeIdx >= command.targetRouteIndex)
+            {
+                // 목표 도달: 계속 진행 (대기 안 함)
+                OnRoutePointReached -= handler;  // 자동 해제
+                CompleteCurrentCommand(true);
+            }
+        };
+
+        OnRoutePointReached += handler;
+    }
+
+    /// <summary>
+    /// 현재 명령 완료 처리
+    ///
+    /// 실행 흐름:
+    /// 1. 완료 콜백 호출 (StateManager에 알림)
+    /// 2. 다음 명령 처리 (ProcessNextCommand 재귀 호출)
+    ///
+    /// 기존 방식과 차이점:
+    /// - 기존: 이벤트 발생 → StateManager가 수동으로 다음 행동 결정
+    /// - 신규: 콜백 호출 → 자동으로 다음 명령 처리
+    /// </summary>
+    /// <param name="success">명령 성공 여부</param>
+    private void CompleteCurrentCommand(bool success)
+    {
+        if (currentCommand == null)
+        {
+            Debug.LogWarning("[AirPlane] CompleteCurrentCommand 호출되었지만 currentCommand가 null입니다.");
+            return;
+        }
+
+        Debug.Log($"[AirPlane] 명령 완료: {currentCommand} | 성공: {success}");
+
+        // 완료 콜백 호출 (StateManager에 알림)
+        currentCommand.onComplete?.Invoke(success);
+
+        // 다음 명령 처리
+        ProcessNextCommand();
+    }
+
+    // ============================================================
+    // 기존 메서드들 (유지)
+    // ============================================================
+
     /// <summary>
     /// 특정 포인트로 즉시 이동 (강제 이동)
     /// </summary>
     /// <param name="targetIndex">목표 포인트 인덱스</param>
     public void MoveToPointImmediately(int targetIndex)
     {
-        if (routePoints == null || targetIndex >= routePoints.Count || targetIndex < currentRouteIndex)
+        if (routePoints == null || targetIndex < 0 || targetIndex >= routePoints.Count)
         {
-            Debug.LogError($"[AirPlane] 잘못된 포인트 인덱스: {targetIndex}");
+            Debug.LogError($"[AirPlane] 잘못된 포인트 인덱스: {targetIndex} (routePoints.Count={routePoints?.Count ?? 0})");
             return;
         }
-        
+
+        // 동일 인덱스 텔레포트는 no-op으로 허용 (스킵 시 동일 offset 절차 연속에서 발생)
+        if (targetIndex == currentRouteIndex)
+        {
+            Debug.Log($"[AirPlane] {targetIndex}번 포인트에 이미 위치. 이벤트만 재발화.");
+            OnRoutePointReached?.Invoke(targetIndex);
+            return;
+        }
+
+        // 역방향 텔레포트는 명시적 경고로 처리하되 진행은 허용 (스킵 설계상 발생 가능)
+        if (targetIndex < currentRouteIndex)
+        {
+            Debug.LogWarning($"[AirPlane] 역방향 텔레포트 감지: {currentRouteIndex} → {targetIndex}");
+        }
+
         // 목표 포인트로 즉시 이동
         Transform targetPoint = routePoints[targetIndex];
         Vector3 targetPos = new Vector3(targetPoint.position.x, jumpHeight, targetPoint.position.z);
         transform.position = targetPos;
 
         Debug.Log($"[AirPlane] {targetIndex}번 포인트({targetPoint.name})로 즉시 이동 완료");
-        
+
         // 현재 위치 다음 목표 지점으로 업데이트
         currentRouteIndex = targetIndex;
         targetRouteIndex = currentRouteIndex + 1;
-        // 포인트 도달 이벤트 발생
-        //OnRoutePointReached?.Invoke(targetIndex);
+
+        // 텔레포트도 자연 도달과 동일하게 OnRoutePointReached 발화 (BUG-3 수정)
+        // → MoveTo/MoveToAndWait 핸들러가 텔레포트 후에도 정상 완료 가능
+        OnRoutePointReached?.Invoke(targetIndex);
     }
     
     public void DoorOpen()
     {
         audioDoorOpen.Play();
+        doorOpenEndCalled = false;  // 플래그 초기화
+
+        // 문 열리기 시작: 눈부신 효과 (postExposure 4로 빠르게 전환)
+        StateManager_New.Inst.volumeCtrl.ApplyPreset("OpenDoorStart", 0.1f);
+
         _updateAction += DoorOpenAction;
     }
+
+    private bool doorOpenCalled = false;
     
     /// <summary>
     /// 문 열기
@@ -329,12 +646,30 @@ public class AirPlane : MonoBehaviour
         _lerpTime02 = (_doorOpenSpendTime - _doorOpenInterval) / _doorEachOpenTime;
         door01.localEulerAngles = Vector3.Lerp(Vector3.zero, _doorOpen01Vector, _lerpTime01);
         door02.localEulerAngles = Vector3.Lerp(Vector3.zero, _doorOpen02Vector, _lerpTime02);
+
+        // 문이 조금 열렸을 때 한 번만 서서히 복귀 효과 (postExposure 0.5로)
+        if (!doorOpenCalled && _lerpTime01 >= 0.2f)
+        {
+            StateManager_New.Inst.volumeCtrl.ApplyPreset("OpenDoor", 1f);
+            Debug.Log("OpenDoor ApplyPreset");
+            doorOpenCalled = true;
+        }
+        
+        if (!doorOpenEndCalled && _lerpTime01 >= 0.4f)
+        {
+            StateManager_New.Inst.volumeCtrl.ApplyPreset("OpenDoorEnd", 3f);  // 8초에 걸쳐 복귀
+            Debug.Log("OpenDoorEnd ApplyPreset");
+            doorOpenEndCalled = true;
+        }
+
         if (_lerpTime02 >= 1.0f)
         {
             door01.localEulerAngles = _doorOpen01Vector;
             door02.localEulerAngles = _doorOpen02Vector;
             _lerpTime01 = 0.0f;
             _lerpTime02 = 0.0f;
+            doorOpenCalled = false;
+            doorOpenEndCalled = false;  // 플래그 리셋
             audioDoorOpen.Stop();
             _updateAction -= DoorOpenAction;
             DoorOpenCompleted?.Invoke();
@@ -342,18 +677,34 @@ public class AirPlane : MonoBehaviour
     }
 
     /// <summary>
-    /// 문여는 애니메이션 스킵
+    /// 문을 즉시 열린 상태로 셋업. 스킵 흐름에서 호출되며 문 회전/오디오/햇빛 페이드를 모두 생략.
+    /// 정상 흐름의 DoorOpen()이 호출되지 않은 시점에서도 안전하게 호출 가능 (idempotent).
     /// </summary>
-    public void DoorOpenSkip()
+    public void OpenDoorImmediately()
     {
-        Debug.Log("문 열리는 애니메이션 스킵처리");
+        Debug.Log("[AirPlane] 문 즉시 열림 (스킵)");
+
+        // 진행 중이던 DoorOpenAction 안전 해제
+        _updateAction -= DoorOpenAction;
+
+        // 문 각도 최종 상태로 강제
         door01.localEulerAngles = _doorOpen01Vector;
         door02.localEulerAngles = _doorOpen02Vector;
-        _lerpTime01 = 0.0f;
-        _lerpTime02 = 0.0f;
-        audioDoorOpen.Stop();
-        _updateAction -= DoorOpenAction;
-        //DoorOpenCompleted?.Invoke();
+
+        // 누적/플래그 리셋
+        _doorOpenSpendTime = 0f;
+        _lerpTime01 = 0f;
+        _lerpTime02 = 0f;
+        doorOpenCalled = false;
+        doorOpenEndCalled = false;
+
+        if (audioDoorOpen != null && audioDoorOpen.isPlaying) audioDoorOpen.Stop();
+
+        // 햇빛 페이드를 OpenDoorEnd 최종 상태로 즉시 복귀
+        if (StateManager_New.Inst != null && StateManager_New.Inst.volumeCtrl != null)
+        {
+            StateManager_New.Inst.volumeCtrl.ApplyPreset("OpenDoorEnd", 0f);
+        }
     }
     
     private void CloudsHide()

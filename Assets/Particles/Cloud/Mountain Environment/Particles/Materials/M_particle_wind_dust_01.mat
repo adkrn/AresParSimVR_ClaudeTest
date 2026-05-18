@@ -978,7 +978,7 @@ Material:
     - _Material_SO: {r: 1, g: 1, b: 0, a: 0}
     - _NewNormal: {r: 0, g: 0, b: 0, a: 0}
     - _NormalTilingOffset: {r: 1, g: 1, b: 0, a: 0}
-    - _ParticleColor: {r: 1, g: 1, b: 1, a: 0.050980393}
+    - _ParticleColor: {r: 0.5566038, g: 0.50671947, b: 0.50671947, a: 0.050980393}
     - _REFLECTIONS_COLOR: {r: 1, g: 1, b: 1, a: 1}
     - _RendererColor: {r: 1, g: 1, b: 1, a: 1}
     - _SVBRDF_AlphaMap_SO: {r: 1, g: 1, b: 0, a: 0}

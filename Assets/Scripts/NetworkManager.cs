@@ -35,7 +35,6 @@ public class NetworkManager : MonoBehaviour
         if (Inst == null)
         {
             Inst = this;
-            DontDestroyOnLoad(gameObject);
             Init();
         }
         else

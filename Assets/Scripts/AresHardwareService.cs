@@ -69,7 +69,6 @@ public class AresHardwareService : MonoBehaviour
         if (Inst == null)
         {
             Inst = this;
-            DontDestroyOnLoad(gameObject);
         }
         else
         {
@@ -129,16 +128,16 @@ public class AresHardwareService : MonoBehaviour
         }
 
         // DLL 로딩 전 환경 정보 출력
-        Debug.Log($"[AresHardware] DLL 초기화 시도 중...");
-        Debug.Log($"[AresHardware] 현재 플랫폼: {UnityEngine.Application.platform}");
-        Debug.Log($"[AresHardware] Unity 버전: {UnityEngine.Application.unityVersion}");
-        Debug.Log($"[AresHardware] 운영체제: {UnityEngine.SystemInfo.operatingSystem}");
-        Debug.Log($"[AresHardware] Unity Editor 비트: {System.IntPtr.Size * 8}bit");
+        // Debug.Log($"[AresHardware] DLL 초기화 시도 중...");
+        // Debug.Log($"[AresHardware] 현재 플랫폼: {UnityEngine.Application.platform}");
+        // Debug.Log($"[AresHardware] Unity 버전: {UnityEngine.Application.unityVersion}");
+        // Debug.Log($"[AresHardware] 운영체제: {UnityEngine.SystemInfo.operatingSystem}");
+        // Debug.Log($"[AresHardware] Unity Editor 비트: {System.IntPtr.Size * 8}bit");
         
         // DLL 경로 확인
         string dllPath = System.IO.Path.Combine(UnityEngine.Application.dataPath, "Plugins", "ARESParaSimDllMotionExternC.dll");
-        Debug.Log($"[AresHardware] DLL 경로: {dllPath}");
-        Debug.Log($"[AresHardware] DLL 파일 존재: {System.IO.File.Exists(dllPath)}");
+        // Debug.Log($"[AresHardware] DLL 경로: {dllPath}");
+        // Debug.Log($"[AresHardware] DLL 파일 존재: {System.IO.File.Exists(dllPath)}");
         
         try
         {
@@ -240,14 +239,14 @@ public class AresHardwareService : MonoBehaviour
 
         eventType = pEventType;
         isSend = true;
-        // var success = AresParachuteAPI.ARESParaSIM__SetEvent((uint)eventType);
-        // if (!success)
-        // {
-        //     Debug.Log("[AresHardware] 이벤트 설정 전송 실패 : 전송 오류");
-        //     return;
-        // }
-        //
-        // Debug.Log($"[AresHardware] 이벤트 설정 전송 성공: {eventType}");
+        var success = AresParachuteAPI.ARESParaSIM__SetEvent((uint)eventType);
+        if (!success)
+        {
+            Debug.Log("[AresHardware] 이벤트 설정 전송 실패 : 전송 오류");
+            return;
+        }
+        
+        Debug.Log($"[AresHardware] 이벤트 설정 전송 성공: {eventType}");
     }
 
     /// <summary>

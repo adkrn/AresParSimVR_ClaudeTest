@@ -59,6 +59,13 @@ public class FFMPEGRecorder : MonoBehaviour
         // targetCamera.targetTexture = _rt;
         _rt = targetCamera.targetTexture;
 
+        // RenderTexture 실제 크기로 width/height 자동 동기화 (인스펙터 값과 불일치 시 영상 깨짐 방지)
+        if (_rt != null)
+        {
+            width = _rt.width;
+            height = _rt.height;
+        }
+
         // 2) FFmpeg 실행경로
         string ffmpegPath =
 #if UNITY_STANDALONE_WIN
@@ -72,8 +79,9 @@ public class FFMPEGRecorder : MonoBehaviour
         // 3) 출력 파일명
         outFile = Path.Combine(outputDir, DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".mp4");
         Debug.Log("<color=cyan>[FFMPEG]</color>Out File Path: " + outFile+"</color>");
-        
+
         // 4) FFmpeg 프로세스 시작
+        // Windows DirectX 백엔드에서 Unity가 GPU 메모리 BGRA 순서로 데이터 반환 (실측 확인)
         _ffmpeg = new Process {
             StartInfo = new ProcessStartInfo {
                 FileName  = ffmpegPath, // FFmpeg 실행 파일

@@ -495,7 +495,7 @@ public class StateManager_Refactored : MonoBehaviour
                 }
                 break;
                 
-            case CompleteCondition.Stand:
+            case CompleteCondition.StandUp:
                 _character?.Stand();
                 break;
                 

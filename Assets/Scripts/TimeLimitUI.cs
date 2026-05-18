@@ -90,9 +90,9 @@ public class TimeLimitUI : MonoBehaviour
     // ----------- 외부 성공 트리거 -----------
     public void MarkSuccess()
     {
-        if (curState != State.Running)
+        if (curState > State.Running)
         {
-            Debug.Log("[TimeLimitUI] 현재 게이지 상태가 아닙니다.");
+            Debug.Log("[TimeLimitUI] 이미 성공처리중입니다.");
             return;
         }
 

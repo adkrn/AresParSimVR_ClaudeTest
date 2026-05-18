@@ -79,7 +79,6 @@ public class WS_DB_Client : MonoBehaviour
         }
         
         _instance = this;
-        DontDestroyOnLoad(gameObject);
         
         try
         {
@@ -575,6 +574,7 @@ public class WS_DB_Client : MonoBehaviour
     public void SendSituationResultData(SituationResultData data)
     {
         data.type = "situationResultData";
+        data.simNo = simulatorNumber;
         ws.Send(JsonUtility.ToJson(data));
     }
 
@@ -2003,7 +2003,33 @@ public class WS_DB_Client : MonoBehaviour
                     break;
 
                 case "setSituationData":
-                    //교육생에서 우발상황이 입력되었을 때 처리하는 함수 추가
+                    Debug.Log($"[WS_DB_Client] setSituationData 도착 — raw={e.Data}");
+                    var setSituationResp = JsonConvert.DeserializeObject<SetSituationData>(e.Data);
+                    if (setSituationResp == null)
+                    {
+                        Debug.LogWarning("[WS_DB_Client] setSituationData 역직렬화 실패");
+                        break;
+                    }
+                    if (setSituationResp.simNo != simulatorNumber)
+                    {
+                        Debug.LogWarning($"[WS_DB_Client] simNo 불일치 — 수신:{setSituationResp.simNo} 현재:{simulatorNumber}");
+                        break;
+                    }
+                    UnityMainThreadDispatcher.Enqueue(() =>
+                    {
+                        if (DataManager.Inst.IsDataLoaded == false)
+                        {
+                            Debug.LogWarning($"[WS_DB_Client] 시나리오 미로딩 — situationId='{setSituationResp.situationId}' 무시");
+                            return;
+                        }
+                        var c = DataManager.Inst.GetContingency(setSituationResp.situationId);
+                        if (c == null)
+                        {
+                            Debug.LogWarning($"[WS_DB_Client] situationId='{setSituationResp.situationId}' 매칭 실패 — 무시");
+                            return;
+                        }
+                        _stateManager.ReceiveContingency(c);
+                    });
                     break;
 
                 case "procedureCommand":
@@ -2016,7 +2042,7 @@ public class WS_DB_Client : MonoBehaviour
                         // 전체 처리를 메인 스레드로 위임 (Time.time 오류 방지)
                         UnityMainThreadDispatcher.Enqueue(() =>
                         {
-                            _stateManager.ProcessProcedureRequest(procedureCmdResp.command);
+                            _stateManager.ProcessProcedureRequest(procedureCmdResp.command, procedureCmdResp.malfunctionId);
                         });
                     }
                     break;
@@ -2897,6 +2923,7 @@ public class CommandResponse
     public string participantId;
     public string command;
     public bool commandFlag;
+    public string malfunctionId;   // 교관 송신 우발상황 동적 ID (TotalMalfunction 절차 dispatch 용)
 }
 
 [Serializable]

@@ -219,12 +219,21 @@ public class DataManager
 
         Debug.Log($"[DataManager] DB에서 {routes.Count}개의 Route 생성 완료");
 
-        // scenario.routeId가 routes 리스트에 있는지 검증
+        //scenario.routeId가 routes 리스트에 있는지 검증
         if (routes.All(r => r.routeId != scenario.routeId))
         {
             Debug.LogError($"[DataManager] scenario.routeId '{scenario.routeId}'가 allRouteId 목록에 없습니다!");
             return false;
         }
+        
+        // DataManager에 임시 디버그 코드 추가
+        Debug.Log("=== ROUTES LIST ===");
+        for (int i = 0; i < routes.Count; i++)
+        {
+            Debug.Log($"[{i}] {routes[i].routeId} - Drop:{routes[i].isDropPoint}");
+        }
+        Debug.Log($"Scenario RouteId: {scenario.routeId}");
+        Debug.Log($"ScenarioRouteIndex: {GetScenarioRouteIndex()}");
         // 9-1. route가 프로시저 완료 조건인지 체크해서 설정
         SetIsCompleteRoute();
         
@@ -242,6 +251,14 @@ public class DataManager
     public TimeLine GetTimeLine(string id) => timeLines.FirstOrDefault(t => t.timelineID == id);
     public Procedure GetProcedure(string id) => procedures.FirstOrDefault(p => p.id == id);
     public Instruction GetInstruction(string id) => instructions.FirstOrDefault(i => i.id == id);
+
+    public Contingency GetContingency(string id)
+    {
+        if (contingencys == null || contingencys.Count == 0) return null;
+        if (string.IsNullOrEmpty(id)) return null;
+        return contingencys.FirstOrDefault(c => c.id == id);
+    }
+
     public List<TimeLine> GetTimelineList() => timeLines;
     public List<Procedure> GetProcedureList() => procedures;
 
@@ -275,7 +292,7 @@ public class DataManager
         }
         
         // startIdx+1부터 endIdx-1까지의 프로시저 반환 (startIdx, endIdx 제외)
-        var fromIndex = startIdx;
+        var fromIndex = startIdx + 1;
         var count = endIdx - startIdx - 1;
         return procedures.GetRange(fromIndex, count);
         

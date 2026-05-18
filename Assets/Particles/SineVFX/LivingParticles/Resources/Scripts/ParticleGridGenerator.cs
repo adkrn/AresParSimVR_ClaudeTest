@@ -5,6 +5,7 @@ using UnityEngine;
 public class ParticleGridGenerator : MonoBehaviour {
 
     public bool rewriteVertexStreams = true;
+    public bool GPU = false;
     public float particleSize = 1f;
     public Color particleColor = Color.white;
     public Vector3 particleRotation3D;
@@ -95,7 +96,14 @@ public class ParticleGridGenerator : MonoBehaviour {
 
         for (int i = 0; i < particles.Length; i++)
         {
-            customData[i] = this.gameObject.transform.up;
+            if (GPU == true)
+            {
+                customData[i] = new Vector3(0, 1, 0);
+            }
+            else
+            {
+                customData[i] = this.gameObject.transform.up;
+            }
         }
 
         ps.SetCustomParticleData(customData, ParticleSystemCustomData.Custom1);        

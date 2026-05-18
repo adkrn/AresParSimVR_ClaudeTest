@@ -177,8 +177,6 @@ public class ParagliderController_Backup : MonoBehaviour
             aresService.OnConnectionRestored += HandleAresConnectionRestored;
             aresService.OnConnectionFailed += HandleAresConnectionFailed;
         }
-
-        StateManager.OnInit += Init;
     }
     
     void OnDestroy()

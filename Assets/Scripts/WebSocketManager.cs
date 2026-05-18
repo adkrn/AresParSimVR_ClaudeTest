@@ -43,7 +43,6 @@ public class WebSocketManager : MonoBehaviour
         if (Inst == null)
         {
             Inst = this;
-            DontDestroyOnLoad(gameObject);
         }
         else
         {
@@ -363,11 +362,20 @@ public class WebSocketManager : MonoBehaviour
         byte[] videoBytes = File.ReadAllBytes(filePath);
         string fileName = Path.GetFileName(filePath);
 
+        // 서버 FileServer.js의 /upload 라우트가 req.body.participantId 로 읽음 (필드명 주의: evalParticipantId 아님)
+        // 그 값을 DB의 evalParticipantId 컬럼에 INSERT함
+        string evalParticipantId = "";
+        if (WS_DB_Client.Instance != null)
+        {
+            evalParticipantId = WS_DB_Client.Instance.GetEvaluationIndex() ?? "";
+        }
+
         var formData = new List<IMultipartFormSection>
         {
             new MultipartFormDataSection("date", DateTime.Now.ToString("yyyy-MM-dd")),
-            new MultipartFormDataSection("group",groupName),
+            new MultipartFormDataSection("group", groupName),
             new MultipartFormDataSection("uploader", clientId),
+            new MultipartFormDataSection("participantId", evalParticipantId),
             new MultipartFormFileSection("video", videoBytes, fileName, "video/mp4"),
         };
 

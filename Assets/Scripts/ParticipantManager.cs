@@ -184,15 +184,15 @@ public class ParticipantManager : MonoBehaviour
                 return;
             }
 
-            // JointMapper 초기화
-            playerJointMapper = player.GetComponent<jointMapper>();
+            // JointMapper 초기화 - Transform 재귀 검색
+            playerJointMapper = FindJointMapperRecursive(player);
             if (playerJointMapper == null)
             {
                 Debug.LogWarning("[ParticipantManager] jointMapper를 찾을 수 없습니다. 관절 데이터 전송 비활성화.");
             }
             else
             {
-                Debug.Log("[ParticipantManager] jointMapper 초기화 성공");
+                Debug.Log($"[ParticipantManager] jointMapper 초기화 성공: {playerJointMapper.gameObject.name}");
             }
 
 
@@ -340,6 +340,12 @@ public class ParticipantManager : MonoBehaviour
         }
 
         // 회전 정보 (VR 카메라의 Y축 회전 사용)
+        if (vrCamera == null)
+        {
+            var cameraObj = GameObject.Find("CenterEyeAnchor");
+            vrCamera = cameraObj.transform;
+            Debug.Log("[ParticipantManager] VR 카메라 발견: CenterEyeAnchor");
+        }
         float yRotation = vrCamera.eulerAngles.y;
         var currentRotation = Quaternion.Euler(0, yRotation, 0);
 
@@ -799,6 +805,34 @@ public class ParticipantManager : MonoBehaviour
 
         Debug.Log($"[ParticipantManager] 줄 세우기 완료 - 더미 모델 {dummyCount}명, " +
                   $"최대 거리: {maxDistanceFromDoor:F2}m, 배치 위치: {targetPosition}");
+    }
+
+    #endregion
+
+    #region Helper Methods
+
+    /// <summary>
+    /// player 하위 오브젝트를 재귀적으로 검색하여 jointMapper 찾기
+    /// </summary>
+    private jointMapper FindJointMapperRecursive(Transform parent)
+    {
+        // 현재 오브젝트에서 찾기
+        jointMapper mapper = parent.GetComponent<jointMapper>();
+        if (mapper != null)
+        {
+            Debug.Log($"[ParticipantManager] jointMapper 발견: {parent.name}");
+            return mapper;
+        }
+
+        // 자식 오브젝트들 재귀 검색
+        foreach (Transform child in parent)
+        {
+            mapper = FindJointMapperRecursive(child);
+            if (mapper != null)
+                return mapper;
+        }
+
+        return null;
     }
 
     #endregion

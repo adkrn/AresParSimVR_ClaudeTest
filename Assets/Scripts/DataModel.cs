@@ -44,6 +44,7 @@ public class Procedure
     public string isReaction;
     public string evaluationId;
     public string skipAircraftPosition;
+    public string malfunctionId;    // 신규 — D15. TotalMalfunction 절차에서 contingency 매핑 키
 }
 
 /// <summary>
@@ -140,7 +141,10 @@ public class Contingency
     public string rightCtrLine;
     public string dropSpeed;
     public string action;
-    
+    public ContingencyCompleteCondition completeCondition;
+    public string duration;
+    public string instructionId;
+    public string evaluationId;
 }
 
 /// <summary>
@@ -165,11 +169,22 @@ public enum CompleteCondition
     Point,
     Item,
     SitDown,
-    Stand,
+    StandUp,
     SceneLoading,
     Fall,
     PullCord,
-    Landing
+    Landing,
+    PullSubCord,   // 신규 — 예비낙하산 줄 당김 (D1: LineTwist)
+    EndAltitude    // 신규 — FreeFall 자동 종료 (STANDARD 전용, D1: EndAltitude)
+}
+
+/// <summary>
+/// 우발상황 완료 조건
+/// </summary>
+public enum ContingencyCompleteCondition
+{
+    None,
+    SubParaOn
 }
 
 /// <summary>

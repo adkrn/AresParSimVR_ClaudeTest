@@ -20,10 +20,6 @@ public class JumperSet : MonoBehaviour
 
     private void Start()
     {
-        StateManager.OnInit += () =>
-        {
-            Init();
-        };
         
         Init();
     }

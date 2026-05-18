@@ -38,7 +38,6 @@ public sealed class WebRTCManager : MonoBehaviour
     {
         if (Inst != null && Inst != this) { Destroy(gameObject); return; }
         Inst = this;
-        DontDestroyOnLoad(gameObject);
     }
 
     // ---------- inspector ----------

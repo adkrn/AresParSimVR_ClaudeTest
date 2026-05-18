@@ -24,7 +24,6 @@ public class ConditionalGageUI : MonoBehaviour
     [SerializeField] private Image textIcon;                // (선택) 텍스트 옆 아이콘
 
     private CameraFrontPlacer _cameraFrontPlacer;           // (옵션) 카메라 앞 배치 스크립트
-    private StateManager _stateManager;
 
     /* ──────────────────────────── 타이밍 설정 ──────────────────────────── */
     [Header("결과 연출 설정")]
@@ -64,19 +63,11 @@ public class ConditionalGageUI : MonoBehaviour
         if (!gageFill) gageFill = GetComponentInChildren<Image>(true);
         if (!conditionText) conditionText = GetComponentInChildren<TMP_Text>(true);
         _cameraFrontPlacer = GetComponent<CameraFrontPlacer>();
-        _stateManager = FindAnyObjectByType<StateManager>();
 
         // 스케일 계산
         _baseScale = transform.localScale;
         _enlargedScale = _baseScale * scaleUpMultiplier;
         _scaleHalfDuration = scaleAnimDuration * 0.5f;
-        
-        StateManager.OnInit += ()=>
-        {
-            _updateAction = null;
-            delayRoutine = null;
-            StateManager.InstructionUIShown -= InitUI;
-        };
     }
     
     public void InitUI(Procedure proc)
@@ -154,9 +145,6 @@ public class ConditionalGageUI : MonoBehaviour
         ToggleIcon(false);
         _updateAction -= UpdateGageVisual;
         _updateAction += HandleResultPhase_FadeOut;
-        
-        // 실패시 절차 완료 신호를 여기서 보냄.
-        onComplete += _stateManager.OnProcedureComplete;
     }
 
     private void InitializeUI()
@@ -184,7 +172,6 @@ public class ConditionalGageUI : MonoBehaviour
     /// </summary>
     private void ToggleIcon(bool success)
     {
-        if(success) _stateManager.OnSuccess();
         
         Debug.Log("[ConditionalGageUI] ToggleIcon : " + success);
         _resultSuccess = success;
