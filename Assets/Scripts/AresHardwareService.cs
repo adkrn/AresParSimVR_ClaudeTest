@@ -35,6 +35,14 @@ public class AresHardwareService : MonoBehaviour
     private AresMotionData outgoingData;
     public AresFeedbackData incomingData;
 
+    // 진단 (임시) — SetMotionControl 실제 송신 데이터 카운터
+    private int _diagSendTickCount = 0;
+    private int _diagFbTickCount = 0;
+    private int _lastFbRollLeft = -1;
+    private int _lastFbRollRight = -1;
+    private int _diagGetEventTickCount = 0;
+    private uint _diagLastFwEvent = 999;   // 초기값 (실제 이벤트와 다른 값) → 첫 polling 시 무조건 로그
+
     // API Data Structures
     private ARES_PARASIM_MOTION_DATA apiMotionData;
     private ARES_PARASIM_FEEDBACK_DATA apiFeedbackData;
@@ -43,6 +51,8 @@ public class AresHardwareService : MonoBehaviour
     public bool IsConnected { get; private set; }
     public bool UseHardware => useHardware;
     public AresFeedbackData LatestFeedback => incomingData;
+    // 진단 (임시) — 펌웨어 실제 이벤트 cached value. background polling 갱신, main thread read 안전
+    public uint LastFwEvent { get; private set; } = 999;
     
     // Events
     public delegate void FeedbackReceivedHandler(AresFeedbackData feedback);
@@ -61,7 +71,7 @@ public class AresHardwareService : MonoBehaviour
     public AresEvent eventType;
     public bool isJump = false;
     private bool isCheckJump = false;
-    
+
     #region Unity Lifecycle
 
     void Awake()
@@ -88,7 +98,8 @@ public class AresHardwareService : MonoBehaviour
             Initialize();
         }
     }
-    
+
+
 
     void OnDestroy()
     {
@@ -202,7 +213,7 @@ public class AresHardwareService : MonoBehaviour
     /// </summary>
     public void SendMotionData(AresMotionData data)
     {
-        Debug.Log("[AresHardware] SendMotionData 실행");
+        //Debug.Log("[AresHardware] SendMotionData 실행");
         if (!IsConnected)
         {
             Debug.Log("[AresHardware] 모션 데이터 전송 실패 : 통신 불량");
@@ -360,6 +371,16 @@ public class AresHardwareService : MonoBehaviour
                     if (debugMode) LogFeedbackData(localFeedbackData); // 로그 생성용 코드
                     apiFeedbackData = localFeedbackData; // 이전 프레임과 현재 프레임 상 데이터 비교용
 
+                    // 진단 (임시) — 피드백 RollLeft/RollRight 변화 시점만 로그
+                    _diagFbTickCount++;
+                    if (Mathf.Abs(localFeedbackData.RollLeft - _lastFbRollLeft) > 100
+                        || Mathf.Abs(localFeedbackData.RollRight - _lastFbRollRight) > 100)
+                    {
+                        Debug.Log($"[FbDiag#{_diagFbTickCount}] FB 변화 — RollL {_lastFbRollLeft}→{localFeedbackData.RollLeft}, RollR {_lastFbRollRight}→{localFeedbackData.RollRight}, Yaw={localFeedbackData.Yawing}");
+                        _lastFbRollLeft = localFeedbackData.RollLeft;
+                        _lastFbRollRight = localFeedbackData.RollRight;
+                    }
+
                     // 회전값 받아서 게임에 바로 적용
                     var convertedData = ConvertFromApiFormat(localFeedbackData);
                     incomingData = convertedData;
@@ -371,10 +392,19 @@ public class AresHardwareService : MonoBehaviour
                 {
                     var sendData = ConvertToApiFormat(outgoingData);
                     var sendSuccess = AresParachuteAPI.ARESParaSIM__SetMotionControl(sendData);
+
+                    // 진단 (임시) — SetMotionControl 실제 송신 데이터. override 활성 시 매회 + 평소 1초당 1회
+                    _diagSendTickCount++;
+                    bool isOverride = outgoingData.HasRollOverride;
+                    if (isOverride || _diagSendTickCount % 50 == 0)
+                    {
+                        Debug.Log($"[SendDiag#{_diagSendTickCount}] override={isOverride}, RollL={sendData.RollLeft}, RollR={sendData.RollRight}, RLSpd={sendData.RollLeftSpeed}, RRSpd={sendData.RollRightSpeed}, Yaw={sendData.Yawing}, YawSpd={sendData.YawingSpeed}, success={sendSuccess}");
+                    }
+
                     isNewMotionData = false;
                     if (sendSuccess)
                     {
-                        Debug.Log("데이터 전송 성공");
+                        //Debug.Log("데이터 전송 성공");
                         Thread.Sleep(20);
                     }
                 }
@@ -388,6 +418,19 @@ public class AresHardwareService : MonoBehaviour
                     {
                         Debug.Log($"[AresHardware] 이벤트 설정 전송 성공: {eventType}");
                         Thread.Sleep(20);
+                    }
+                }
+
+                // 진단 (임시) — 펌웨어 실제 이벤트 polling. 매 cycle 갱신 (cache) + 변화 시점만 로그
+                _diagGetEventTickCount++;
+                if (_diagGetEventTickCount % 10 == 0)  // 10 cycle당 1회 polling (통신 부담 완화)
+                {
+                    uint currentFwEvent = AresParachuteAPI.ARESParaSIM__GetEvent();
+                    LastFwEvent = currentFwEvent;   // main thread read 가능
+                    if (currentFwEvent != _diagLastFwEvent)
+                    {
+                        Debug.Log($"[EvtDiag#{_diagGetEventTickCount}] 펌웨어 이벤트 변화 — {(AresEvent)_diagLastFwEvent}({_diagLastFwEvent}) → {(AresEvent)currentFwEvent}({currentFwEvent})");
+                        _diagLastFwEvent = currentFwEvent;
                     }
                 }
 
@@ -563,14 +606,21 @@ public class AresHardwareService : MonoBehaviour
     /// </summary>
     private ARES_PARASIM_MOTION_DATA ConvertToApiFormat(AresMotionData data)
     {
-        // Roll 변환: 0~1 범위를 5000~15000으로 매핑
-        // 0 = 5000 (중립), 1 = 15000 (최대 당김)
-        var rollLeft = 10000 + (int)(data.RollLeftLength * 10000);
-        var rollRight = 10000 + (int)(data.RollRightLength * 10000);
-
-        // 범위 제한 (안전을 위해)
-        rollLeft = Mathf.Clamp(rollLeft, 10000, 15000);
-        rollRight = Mathf.Clamp(rollRight, 10000, 15000);
+        int rollLeft, rollRight;
+        if (data.HasRollOverride)
+        {
+            // 우발상황 경로: raw 0~20000 풀 범위 (라이저 length 변환 우회)
+            rollLeft  = Mathf.Clamp(data.RollLeftRawOverride,  0, 20000);
+            rollRight = Mathf.Clamp(data.RollRightRawOverride, 0, 20000);
+        }
+        else
+        {
+            // 라이저 경로: 0~1 → 10000~15000 (기존 의도 보존)
+            rollLeft  = 10000 + (int)(data.RollLeftLength  * 10000);
+            rollRight = 10000 + (int)(data.RollRightLength * 10000);
+            rollLeft  = Mathf.Clamp(rollLeft,  10000, 15000);
+            rollRight = Mathf.Clamp(rollRight, 10000, 15000);
+        }
 
         var rollLeftSpeed = (int)data.RollLeftSpeed;
         var rollRightSpeed = (int)data.RollRightSpeed;
@@ -654,6 +704,11 @@ public class AresHardwareService : MonoBehaviour
         public float YawAngle;            // Yaw 각도 (0 ~ 360)
         public int YawSpeed;              // Yaw Speed
         public int YawMode;
+
+        // 우발상황 어깨 raw 직접 명령 — true 시 ConvertToApiFormat 가 length 변환 우회 (Phase 2 통합)
+        public bool HasRollOverride;
+        public int RollLeftRawOverride;   // 0~20000 풀 범위
+        public int RollRightRawOverride;
     }
     
     /// <summary>
@@ -682,5 +737,6 @@ public class AresHardwareService : MonoBehaviour
         Deploy_Standard = 3,     // 낙하산 산개
         Deploy_High = 4,         // 낙하산 산개
         Landing = 5,             // 착륙 직전
-        Landed = 6               // 착륙
+        Landed = 6,              // 착륙
+        MalFunc = 7              // 우발상황 (Heave 작동, PDF Table 8)
     }

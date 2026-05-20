@@ -75,8 +75,9 @@ public class AresHardwareParagliderController : MonoBehaviour
     // volatile — background thread (HandleAresFeedback) 에서 main thread 의 세팅 가시성 보장
     private volatile int _procLineTwistYawDir = 0;       // -1=CCW, 0=정지, +1=CW
     private float _procLineTwistYawAcc = 0f;    // 누적 각도(°)
-    private bool _leftCtrLineDisabled  = false; // 조종 입력 무효 (왼쪽) — D9 / per-side
-    private bool _rightCtrLineDisabled = false; // 조종 입력 무효 (오른쪽) — D9 / per-side
+    // volatile — HandleAresFeedback(백그라운드 스레드) 가 메인 스레드 세팅 즉시 인식하도록 (_procLineTwistYawDir 동일 패턴)
+    private volatile bool _leftCtrLineDisabled  = false; // 조종 입력 무효 (왼쪽) — D9 / per-side
+    private volatile bool _rightCtrLineDisabled = false; // 조종 입력 무효 (오른쪽) — D9 / per-side
 
     // Sd2d-mini — 산줄꼬임 진입 시점 메인 forward 저장 (자세 회전 후에도 이동 방향은 메인 유지 = 비조종형 reserve 모사)
     private Vector3 _preLineTwistForwardDir = Vector3.forward;
@@ -122,6 +123,19 @@ public class AresHardwareParagliderController : MonoBehaviour
     // Sd2-stage — 2단계 분리 (1차 메인 컷어웨이 → 2차 예비 전개)
     private bool _mainCutawayDone = false;
     private float _chestTriggerReactivatedAt = -1f;   // B2 — 활성 직후 0.1s 입력 무시 가드
+
+    [Header("━━━ Harness Hardware (Contingency, Raw API Range 0~20000) ━━━")]
+    [Tooltip("mainParaCut 시 어깨축 raw 값 (양쪽 동일). 0=최저, 10000=중립, 20000=최고. 실측 튜닝 필요")]
+    [SerializeField, Range(0, 20000)] private int harnessDownRaw = 0;
+    [Tooltip("SubParaOn 시 어깨축 raw 값 (양쪽 동일). 일반 낙하산 펴질 때 처럼 하네스 위로 상승")]
+    [SerializeField, Range(0, 20000)] private int harnessUpRaw   = 20000;
+    [Tooltip("하네스 모터 RPM (Table 7 CENTER=3000)")]
+    [SerializeField, Range(0, 5000)]  private int harnessMotorRpm = 3000;
+    // PullHarnessDown / RaiseHarnessUp 호출 시 무한 hold (ReleaseHarnessHold() 명시 호출로만 해제)
+    // 시간 기반 hold 는 더 이상 지원하지 않음 — 모든 호출 site (mainParaCut/SubParaOn/산줄꼬임) 가 무한 hold 가 적합
+    // volatile bool — HandleAresFeedback (백그라운드 스레드) 가 IsHarnessHoldActive 읽을 때 Unity API 호출 회피
+    private volatile bool _isHarnessHoldActiveCache = false;
+    private bool IsHarnessHoldActive => _isHarnessHoldActiveCache;
 
     void Awake()
     {
@@ -264,17 +278,37 @@ public class AresHardwareParagliderController : MonoBehaviour
             }
         }
 
-        // F12 키보드 트리거 (S4a/S4b, T10) — SubPara 전개
-        // S4b 진입으로 활성 LineTwist 절차 가드 추가 = 3중 가드 (W6 회피)
-        // Sd2-stage — 1차 컷어웨이로 _procLineTwistYawDir=0 전이된 후에도 F12 동작 (Ds-3: F12 한 번에 2단계)
-        // D3=a — inContingency 추가 일반화: 모든 우발상황 활성 중 F12 발화 (TL06 FreeFall 도 옵션 C 가 isPara 토글)
+        // F11 / F12 키보드 트리거 — 우발상황 2단계 테스트 입력
+        // F11 = MainParaCut (action 1단계)  /  F12 = SubParaOn (condition 2단계)
+        // 순서 강제(Q2=B): MainParaCut 우발상황에서 F11 선행 안 했으면 F12 차단
         bool inContingency = !string.IsNullOrEmpty(StateManager_New.Inst?.ActiveContingencyId ?? "");
         bool linetwistActive = _procLineTwistYawDir != 0 || _mainCutawayDone;
+
+        // F11 — 메인 컷어웨이 (학생 즉시 조치)
+        if (!_mainCutawayDone && inContingency && Input.GetKeyDown(KeyCode.F11))
+        {
+            Debug.Log("[AresPara] F11 → MainParaCut (학생 입력)");
+            CutawayMainPara();   // action hook 은 CutawayMainPara 내부에서 발화
+        }
+
+        // F12 — 예비낙하산 전개. 우발상황 활성 중이면 action 선행 필요(순서 강제).
         if (!isSubPara && (linetwistActive || inContingency) && Input.GetKeyDown(KeyCode.F12))
         {
-            Debug.Log("[AresPara] F12 → SubPara 전개");
-            DeploySubPara();
+            if (inContingency && StateManager_New.Inst != null && !StateManager_New.Inst.IsContingencyActionPerformed)
+            {
+                Debug.LogWarning("[AresPara] F12 무시 — 우발상황 action(MainParaCut) 선행 필요");
+            }
+            else
+            {
+                Debug.Log("[AresPara] F12 → SubPara 전개");
+                DeploySubPara();
+            }
         }
+
+        // Phase 3 — Harness Hold (단발 송신 + 라이저 path 차단 가드만)
+        // SendHarnessRawCommand 가 단발 송신, 모터는 명령 위치 유지. 라이저 path 는 IsHarnessHoldActive 가드로 송신 차단.
+        // (매 프레임 반복 송신은 펌웨어가 "이동 명령 재시작" 으로 해석해 모터 도달 못 함)
+        _isHarnessHoldActiveCache = cachedMotionData.HasRollOverride;
 
         // ─── 진단 로그 (임시) — 회전 변화 시점에 입력값/차단상태 캡처. 조사 종료 후 제거. ───
         if (isJumpStart && pasimPlayer != null)
@@ -330,6 +364,8 @@ public class AresHardwareParagliderController : MonoBehaviour
     private int _diagCalcSendCount = 0;
     private int _diagFbSyncCount = 0;
     private int _diagLtSendCount = 0;
+    private int _diagGuardCheckCount = 0;
+    private int _diagLastGuardState = -1;
 
     private void CalculateAndSendTargetRotation()
     {
@@ -340,9 +376,25 @@ public class AresHardwareParagliderController : MonoBehaviour
             Debug.Log($"[LtDiag-Entry#{_diagCalcEntryCount}@{_diagGoInstId}] CalcSend ENTRY — isPara={isPara}, isSubPara={isSubPara}, yawDir={_procLineTwistYawDir}, threadId={System.Threading.Thread.CurrentThread.ManagedThreadId}");
         }
 
+        // 진단 (임시) — 가드 상태 변화 시점만 (이전 값과 다를 때만 1회)
+        _diagGuardCheckCount++;
+        int guardState = (_mainCutawayDone ? 1 : 0) | (isPara ? 2 : 0) | (isSubPara ? 4 : 0) | (IsHarnessHoldActive ? 8 : 0);
+        if (guardState != _diagLastGuardState)
+        {
+            Debug.Log($"[GuardDiag#{_diagGuardCheckCount}] 가드 상태 변화 — _mainCutawayDone={_mainCutawayDone}, isPara={isPara}, isSubPara={isSubPara}, IsHarnessHoldActive={IsHarnessHoldActive}, threadId={System.Threading.Thread.CurrentThread.ManagedThreadId}");
+            _diagLastGuardState = guardState;
+        }
+
         // 라이저를 당기는 중이거나 하드웨어 연동 상태에서만 실행함
         // Sd2 — isSubPara 가드 추가 (D-pre6=A 입구 가드)
-        if (!isPara || isSubPara)
+        // Phase 3 — _mainCutawayDone 가드 추가: 메인 컷어웨이 후엔 메인 라이저 자체가 없으므로 motion data 송신 차단
+        if (!isPara || isSubPara || _mainCutawayDone)
+        {
+            return;
+        }
+
+        // Phase 2 통합 — Harness Hold 활성 중에는 라이저 입력 무시 (Update 가 매 프레임 송신 중)
+        if (IsHarnessHoldActive)
         {
             return;
         }
@@ -369,13 +421,24 @@ public class AresHardwareParagliderController : MonoBehaviour
             return;
         }
 
+        // 조종줄 고장 우발상황 — 양쪽 차단 시 motion data 송신 자체 skip
+        // (LeftLineFailure/RightLineFailure/BothLineFailure 등 _leftCtrLineDisabled/_rightCtrLineDisabled 가 활성일 때)
+        if (_leftCtrLineDisabled && _rightCtrLineDisabled)
+        {
+            return;
+        }
+
+        // 한쪽 차단 시 해당 측 라이저 풀 입력 무효 → 모터 미반응
+        float effectiveLeft  = _leftCtrLineDisabled  ? 0f : leftPull;
+        float effectiveRight = _rightCtrLineDisabled ? 0f : rightPull;
+
         // 각 라이저의 실제 당김 값을 그대로 사용 (0~1 범위)
         // API에서 10000(중립) ~ 15000(최대)으로 변환됨
-        cachedMotionData.RollLeftLength = leftPull;   // 0 = 중립(10000), 1 = 최대(15000)
-        cachedMotionData.RollRightLength = rightPull;  // 0 = 중립(10000), 1 = 최대(15000)
+        cachedMotionData.RollLeftLength = effectiveLeft;   // 0 = 중립(10000), 1 = 최대(15000)
+        cachedMotionData.RollRightLength = effectiveRight; // 0 = 중립(10000), 1 = 최대(15000)
 
         // 라이저 입력 차이로 방향과 강도 결정
-        float turnInput = leftPull - rightPull;  // -1 ~ +1
+        float turnInput = effectiveLeft - effectiveRight;  // -1 ~ +1
 
         // 속도 계산
         float rollSpeed = Mathf.Abs(turnInput * 400f);  // 0 ~ 3000 RPM
@@ -490,17 +553,19 @@ public class AresHardwareParagliderController : MonoBehaviour
         // Unity Yaw에 상대 변화량 적용 (반전)
         nowYaw = unityBaseYaw - hardwareDelta;
 
-        Debug.Log($"Yaw 처리: Hardware={hardwareYaw:F1}° (Base={hardwareBaseYaw:F1}°, Delta={hardwareDelta:F1}°) → Unity={nowYaw:F1}°");
+        //Debug.Log($"Yaw 처리: Hardware={hardwareYaw:F1}° (Base={hardwareBaseYaw:F1}°, Delta={hardwareDelta:F1}°) → Unity={nowYaw:F1}°");
 
-        // roll 처리
-        var turnInput = leftPull - rightPull;
-        
+        // roll 처리 — 조종줄 차단 시 effective 적용 (양쪽 차단 시 turnInput=0 → newRollValue=0)
+        float effRollLeft  = _leftCtrLineDisabled  ? 0f : leftPull;
+        float effRollRight = _rightCtrLineDisabled ? 0f : rightPull;
+        var turnInput = effRollLeft - effRollRight;
+
         // 5% 이하는 무시
         if (Mathf.Abs(turnInput) < 0.05f)
         {
             turnInput = 0f;
         }
-        
+
         newRollValue = turnInput * maxRoll;
 
         // // Roll 처리
@@ -667,7 +732,9 @@ public class AresHardwareParagliderController : MonoBehaviour
         // ★ 활성 가드 (_procLineTwistYawDir != 0) — Begin 호출 전 가산 방지 (이중 안전망)
         // Sd2-stage — 1차 컷어웨이로 _procLineTwistYawDir=0 전이된 후에도 dropBonus 유지 (자유낙하 분위기)
         float dropBonus = (_procLineTwistYawDir != 0 || _mainCutawayDone) ? _procDropSpeedBonus : 0f;
-        float targetSink = (isPara ? parachuteSinkSpeed : freeFallSinkSpeed) + dropBonus;
+        // 우발상황 2단계 — 컷어웨이 완료 & 예비 미전개 구간은 free fall (메인 메쉬 OFF 상태에서 5m/s 잔존 버그 수정)
+        bool inFreeFall = !isPara || (_mainCutawayDone && !isSubPara);
+        float targetSink = (inFreeFall ? freeFallSinkSpeed : parachuteSinkSpeed) + dropBonus;
 
         // 하강 속도 제어
         float sinkError = targetSink * sinkRateGain;
@@ -694,8 +761,8 @@ public class AresHardwareParagliderController : MonoBehaviour
             rb.useGravity = true;
         }
 
-        // 자유낙하 이벤트
-        if (AresHardwareService.Inst.IsConnected && DataManager.Inst.scenario.jumpType != JumpType.STANDARD)
+        // 자유낙하 이벤트 — 모든 jumpType (STANDARD/HAHO/HALO)
+        if (AresHardwareService.Inst.IsConnected)
         {
             AresHardwareService.Inst.SetEvent(AresEvent.FreeFall);
             currentEvent = AresEvent.FreeFall;
@@ -712,11 +779,12 @@ public class AresHardwareParagliderController : MonoBehaviour
         // parachuteForwardSpeed와 parachuteSinkSpeed 파라미터 사용
 
         // 전개 이벤트
+        // ⚠️ 임시 (Step 2 테스트용) — Deploy_Standard 자체 시퀀스 충돌 회피, Deploy_High 사용
         if (AresHardwareService.Inst.IsConnected)
         {
-            Debug.Log("낙하산 전개 이벤트 전송");
-            AresHardwareService.Inst.SetEvent(AresEvent.Deploy_Standard);
-            currentEvent = AresEvent.Deploy_Standard;
+            Debug.Log("낙하산 전개 이벤트 전송 (임시 Deploy_High)");
+            AresHardwareService.Inst.SetEvent(AresEvent.Deploy_High);
+            currentEvent = AresEvent.Deploy_High;
         }
     }
 
@@ -724,8 +792,18 @@ public class AresHardwareParagliderController : MonoBehaviour
     public void CutawayMainPara()
     {
         if (_mainCutawayDone) return;
-        if (!isPara) return;
+        if (!isPara) return;   // MainParaOff (자유낙하) — 이미 그 자세이므로 어깨 변화 없음
         _mainCutawayDone = true;
+
+        // 진단 (임시) — CutawayMainPara 진입 시 펌웨어 cached 이벤트 출력 (background polling 마지막 값)
+        if (AresHardwareService.Inst != null && AresHardwareService.Inst.IsConnected)
+        {
+            uint fwEvent = AresHardwareService.Inst.LastFwEvent;
+            Debug.Log($"[EvtDiag-F11] CutawayMainPara 진입 시점 펌웨어 cached 이벤트 = {(AresEvent)fwEvent}({fwEvent}) — Deploy_Standard(3)/Deploy_High(4) 가 아니면 Roll 명령 무시됨");
+        }
+
+        // Phase 3 — 하드웨어 하네스 다운 (MainParaCut 만 해당, 메인 컷어웨이로 수직 자세 무너짐)
+        PullHarnessDown();
 
         // C1 — 산줄꼬임 회전 효과 종료 (yaw 는 이미 본체에 누적되어 있으므로 state reset 만)
         if (_procLineTwistYawDir != 0)
@@ -747,6 +825,9 @@ public class AresHardwareParagliderController : MonoBehaviour
         }
 
         Debug.Log("[AresPara] CutawayMainPara — 1차 컷어웨이 완료 (예비 2차 대기)");
+
+        // 우발상황 2단계 완료 — action(MainParaCut) hook (StateManager 가 expectedAction 일치 시 _actionPerformed=true)
+        StateManager_New.Inst?.OnContingencyActionPerformed(ContingencyAction.MainParaCut);
     }
 
     // Sd2-stage — 1s 후 chestTrigger 자동 재활성 (B2: _chestTriggerReactivatedAt 기록)
@@ -820,6 +901,9 @@ public class AresHardwareParagliderController : MonoBehaviour
         // Sd2 — 가슴 콜라이더 비활성 (재진입 방지)
         if (chestTrigger != null) chestTrigger.SetActive(false);
 
+        // Phase 3 — 하드웨어 하네스 업 (SubParaOn — 예비낙 펴짐 시 어깨 상승)
+        RaiseHarnessUp();
+
         // ★ 우발상황 활성 시 완료 hook — S4b LineTwistAction polling 과 등가
         //    OnContingencyConditionMet 내부 _activeContingencyId 가드(:1209)로
         //    우발상황 비활성 시 즉시 return → 절차 흐름과 충돌 없음
@@ -867,8 +951,21 @@ public class AresHardwareParagliderController : MonoBehaviour
                         Debug.Log("[AresPara] chestTrigger 발화 무시 (B2 — 활성 직후 0.1s)");
                         return;
                     }
-                    if (!_mainCutawayDone) CutawayMainPara();
-                    else DeploySubPara();
+                    if (!_mainCutawayDone)
+                    {
+                        CutawayMainPara();   // action hook 은 CutawayMainPara 내부에서 발화
+                    }
+                    else
+                    {
+                        // 순서 강제(Q2=B): 우발상황 활성 중이면 action 선행 필요. 이중 안전망 — 외부 path 막기.
+                        bool inCont = !string.IsNullOrEmpty(StateManager_New.Inst?.ActiveContingencyId ?? "");
+                        if (inCont && StateManager_New.Inst != null && !StateManager_New.Inst.IsContingencyActionPerformed)
+                        {
+                            Debug.LogWarning("[AresPara] chestTrigger 2차 무시 — 우발상황 action 선행 필요");
+                            return;
+                        }
+                        DeploySubPara();
+                    }
                 };
                 _chestTriggerListenerCache.OnPlayerEntered += _chestTriggerSub;
             }
@@ -902,6 +999,50 @@ public class AresHardwareParagliderController : MonoBehaviour
         }
 
         Debug.Log("[AresPara] EndContingencyEffects — 상태 원복");
+    }
+
+    /// <summary>mainParaCut 시 호출. 하네스 다운 (raw=harnessDownRaw).</summary>
+    public void PullHarnessDown() => SendHarnessRawCommand(harnessDownRaw);
+
+    /// <summary>SubParaOn 시 호출. 하네스 업 (raw=harnessUpRaw, 일반 낙하산 펴질 때 처럼).</summary>
+    public void RaiseHarnessUp()  => SendHarnessRawCommand(harnessUpRaw);
+
+    /// <summary>
+    /// 무한 hold 해제 — 우발상황 종료 hook 에서 호출.
+    /// override 즉시 해제 → 다음 라이저 입력 흐름이 정상 (10000~15000) 으로 모터 위치 복귀.
+    /// </summary>
+    public void ReleaseHarnessHold()
+    {
+        if (!cachedMotionData.HasRollOverride && !_isHarnessHoldActiveCache) return;
+        cachedMotionData.HasRollOverride = false;
+        _isHarnessHoldActiveCache        = false;
+        Debug.Log("[AresPara] ReleaseHarnessHold — override 해제");
+    }
+
+    /// <summary>
+    /// 양쪽 동일 raw 값 송신 헬퍼. cachedMotionData 의 override 모드 활성화 + Hold 시작.
+    /// Update() 의 Hold 분기가 hold 시간 동안 매 프레임 SendMotionData 반복 송신 (라이저/펌웨어 덮어쓰기 방지).
+    /// </summary>
+    private void SendHarnessRawCommand(int rawValue)
+    {
+        if (AresHardwareService.Inst == null || !AresHardwareService.Inst.IsConnected)
+        {
+            Debug.Log($"[AresPara] Harness 명령 skip — 하드웨어 미연결 (raw={rawValue})");
+            return;
+        }
+
+        // 무한 hold 활성화 — Update() 가 ReleaseHarnessHold() 호출 전까지 매 프레임 반복 송신
+        _isHarnessHoldActiveCache   = true;
+        cachedMotionData.HasRollOverride      = true;
+        cachedMotionData.RollLeftRawOverride  = rawValue;
+        cachedMotionData.RollRightRawOverride = rawValue;
+        cachedMotionData.RollLeftSpeed        = harnessMotorRpm;
+        cachedMotionData.RollRightSpeed       = harnessMotorRpm;
+
+        // 진단 (임시) — Harness override 송신 — caller 식별
+        Debug.Log($"[CallerDiag] SendMotionData 호출 — caller=SendHarnessRawCommand, override={cachedMotionData.HasRollOverride}, rawL={cachedMotionData.RollLeftRawOverride}, rawR={cachedMotionData.RollRightRawOverride}, spd={cachedMotionData.RollLeftSpeed}");
+        AresHardwareService.Inst.SendMotionData(cachedMotionData);
+        Debug.Log($"[AresPara] HarnessRawCommand — raw={rawValue}, hold=∞");
     }
 
     // 산줄꼬임 절차 — 효과 활성 (S4b, T4)
@@ -946,12 +1087,37 @@ public class AresHardwareParagliderController : MonoBehaviour
                         Debug.Log("[AresPara] chestTrigger 발화 무시 (B2 — 활성 직후 0.1s)");
                         return;
                     }
-                    if (!_mainCutawayDone) CutawayMainPara();
-                    else DeploySubPara();
+                    if (!_mainCutawayDone)
+                    {
+                        CutawayMainPara();   // action hook 은 CutawayMainPara 내부에서 발화
+                    }
+                    else
+                    {
+                        // 순서 강제(Q2=B): 우발상황 활성 중이면 action 선행 필요. 이중 안전망 — 외부 path 막기.
+                        bool inCont = !string.IsNullOrEmpty(StateManager_New.Inst?.ActiveContingencyId ?? "");
+                        if (inCont && StateManager_New.Inst != null && !StateManager_New.Inst.IsContingencyActionPerformed)
+                        {
+                            Debug.LogWarning("[AresPara] chestTrigger 2차 무시 — 우발상황 action 선행 필요");
+                            return;
+                        }
+                        DeploySubPara();
+                    }
                 };
                 _chestTriggerListenerCache.OnPlayerEntered += _chestTriggerSub;
             }
         }
+
+        TeleportTowardLandingTarget();
+    }
+
+    // 임시 — 산줄꼬임 진입 시 착륙 지점 근처(월드 -295, -75)로 XZ만 이동, Y 보존
+    private void TeleportTowardLandingTarget()
+    {
+        Vector3 cur = pasimPlayer.position;
+        Vector3 teleport = new Vector3(-295f, cur.y, -75f);
+        pasimPlayer.position = teleport;
+
+        Debug.Log($"[LtTel] 텔레포트 — from=({cur.x:F1},{cur.y:F1},{cur.z:F1}) → to=({teleport.x:F1},{teleport.y:F1},{teleport.z:F1})");
     }
 
     // 산줄꼬임 절차 — 효과 종료

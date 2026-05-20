@@ -57,6 +57,12 @@ public class StateManager_New : MonoBehaviour
     // 우발상황 위임 결과 — CompleteContingency 가 세팅, WaitProcedureCompleteFromContingency 가 OnSuccess 판단에 사용
     private bool _lastContingencyResult = false;
 
+    // 우발상황 2단계 완료 (action + completeCondition) 추적
+    private bool _actionPerformed = false;
+    private bool _conditionMet = false;
+    private ContingencyAction _expectedAction = ContingencyAction.None;
+    public bool IsContingencyActionPerformed => _actionPerformed;   // paraCtrl F12/chestTrigger 순서 강제 가드용
+
     private void Awake()
     {
         if (Inst == null)
@@ -1237,11 +1243,26 @@ public class StateManager_New : MonoBehaviour
     private void ApplyContingency(Contingency c)
     {
         _activeContingencyId = c.id;
+
+        // 2단계 완료 추적 초기화 — action 은 MainParaOff 면 자동 충족, MainParaCut 이면 학생 입력 대기
+        _expectedAction = ParseContingencyAction(c.action);
+        _actionPerformed = (_expectedAction == ContingencyAction.MainParaOff);
+        _conditionMet = false;
+        Debug.Log($"[StateManager] ApplyContingency — id={c.id}, expectedAction={_expectedAction}, actionPerformed(init)={_actionPerformed}");
+
         ApplyContingencyHardware(c);
         UIManager.Inst.ShowContingencyOverlay(c);
         if (_contingencyDurationCoroutine != null) StopCoroutine(_contingencyDurationCoroutine);
         _contingencyDurationCoroutine = StartCoroutine(WaitForContingencyDuration(c));
         Debug.Log($"[StateManager] 우발상황({c.id}) 활성 — duration={c.duration}");
+    }
+
+    private static ContingencyAction ParseContingencyAction(string action)
+    {
+        if (string.IsNullOrEmpty(action)) return ContingencyAction.None;
+        if (action == "MainParaOff") return ContingencyAction.MainParaOff;
+        if (action == "MainParaCut") return ContingencyAction.MainParaCut;
+        return ContingencyAction.None;
     }
 
     private void CompleteContingency(Contingency c, bool success)
@@ -1288,17 +1309,17 @@ public class StateManager_New : MonoBehaviour
     /// CSV 4컬럼(leftCtrLine/rightCtrLine/dropSpeed/action) → AresHardwareParagliderController 효과 매핑.
     /// LineTwist 만 회전 효과 + dropBonus 55f 하드코딩(D4=a) — BeginLineTwistProcedure.
     /// 나머지 11종 → BeginContingencyEffects(per-side / dropBonus / needCutaway).
+    /// 2단계 완료 도입 후: action(MainParaCut) 자동 실행 제거 — 학생 F11/chestTrigger 입력 대기.
     /// </summary>
     private void ApplyContingencyHardware(Contingency c)
     {
         bool leftOn  = (c.leftCtrLine  == "ON");
         bool rightOn = (c.rightCtrLine == "ON");
         float dropBonus = float.TryParse(c.dropSpeed, out var v) ? v : 0f;
-        bool needCutaway = (c.action == "MainParaCut");
-        // action=MainParaOff → needCutaway=false, chestTrigger 만 활성, 옵션 C 가 reserve 시점 isPara 토글
-        // action=MainParaCut → needCutaway=true, 즉시 메인 컷어웨이
+        // 2단계 완료: 컷어웨이는 학생 입력으로만 실행. chestTrigger/조종줄 차단/dropSpeed 만 세팅.
+        bool needCutaway = false;
 
-        Debug.Log($"[StateManager] ApplyContingencyHardware — c.id={c.id}, leftOn={leftOn}, rightOn={rightOn}, dropBonus={dropBonus}, needCutaway={needCutaway}");
+        Debug.Log($"[StateManager] ApplyContingencyHardware — c.id={c.id}, leftOn={leftOn}, rightOn={rightOn}, dropBonus={dropBonus}, needCutaway={needCutaway} (학생 입력 대기)");
 
         if (_character?.paraCtrl == null)
         {
@@ -1326,8 +1347,28 @@ public class StateManager_New : MonoBehaviour
     }
 
     /// <summary>
-    /// Phase 5 영역 — 성공 감지 hook (본 버전 호출자 0건).
-    /// 다음 버전에서 ARES 가 SubParaOn 등 조건 충족 신호를 보낼 때 발화.
+    /// 우발상황 1단계 — 학생 즉시 조치(action) 완료 hook.
+    /// paraCtrl.CutawayMainPara() 또는 향후 다른 action 발화 path 에서 호출.
+    /// 일치하지 않는 action 은 무시 (e.g., MainParaOff 활성 중 MainParaCut 입력).
+    /// </summary>
+    public void OnContingencyActionPerformed(ContingencyAction action)
+    {
+        if (string.IsNullOrEmpty(_activeContingencyId)) return;
+        if (action != _expectedAction)
+        {
+            Debug.LogWarning($"[StateManager] 입력 action({action}) ≠ 활성 우발상황 expectedAction({_expectedAction}) — 무시");
+            return;
+        }
+        if (_actionPerformed) return;   // idempotent
+        _actionPerformed = true;
+        Debug.Log($"[StateManager] Contingency action 완료 — {action}");
+        TryCompleteIfReady();
+    }
+
+    /// <summary>
+    /// 우발상황 2단계 — 해결 조건(completeCondition) 충족 hook.
+    /// paraCtrl.DeploySubPara() 등에서 호출.
+    /// 순서 강제: _actionPerformed=false 면 거부 (이중 안전망 — paraCtrl 입력 가드와 함께 작동).
     /// </summary>
     public void OnContingencyConditionMet(ContingencyCompleteCondition condition)
     {
@@ -1342,6 +1383,27 @@ public class StateManager_New : MonoBehaviour
             return;
         }
 
+        if (!_actionPerformed)
+        {
+            Debug.LogWarning($"[StateManager] condition({condition}) 무시 — action({_expectedAction}) 선행 필요");
+            return;
+        }
+
+        if (_conditionMet) return;   // idempotent
+        _conditionMet = true;
+        Debug.Log($"[StateManager] Contingency condition 충족 — {condition}");
+        TryCompleteIfReady();
+    }
+
+    /// <summary>
+    /// 2단계(action + condition) 모두 충족 시 우발상황 성공 완료.
+    /// </summary>
+    private void TryCompleteIfReady()
+    {
+        if (!_actionPerformed || !_conditionMet) return;
+        var active = DataManager.Inst.GetContingency(_activeContingencyId);
+        if (active == null) return;
+        Debug.Log($"[StateManager] TryCompleteIfReady — 2단계 충족, 성공 완료 ({active.id})");
         CompleteContingency(active, success: true);
     }
 
